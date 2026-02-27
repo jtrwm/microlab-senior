@@ -1,0 +1,400 @@
+/* ------------------------------------
+    BASE STYLES & LAYOUT
+------------------------------------ */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f7f7f7; /* Background อ่อน ๆ */
+    color: #333;
+}
+
+.main-content {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 0;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.content-wrapper {
+    display: flex;
+    gap: 30px;
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 1024px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+    .station-grid, .booking-panel {
+        width: 100% !important;
+    }
+}
+
+/* ------------------------------------
+    NAVBAR STYLES
+------------------------------------ */
+.navbar {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 25px;
+    border-bottom: 1px solid #eee;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.nav-links a {
+    margin-right: 25px;
+    text-decoration: none;
+    color: #666;
+    font-size: 14px;
+    padding-bottom: 2px;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    color: black;
+    font-weight: 600;
+    border-bottom: 2px solid black;
+}
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.profile-icon {
+    width: 24px;
+    height: 24px;
+    color: #999;
+}
+
+/* ------------------------------------
+    2. STATION GRID (LEFT SIDE)
+------------------------------------ */
+.station-grid {
+    width: 65%; /* 2/3 width on large screens */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.station-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    background-color: white;
+    transition: transform 0.2s;
+}
+
+.station-card.selected {
+    border: 4px solid #4fc3f7; /* Cyan border for selected station (Station 2) */
+    box-shadow: 0 8px 15px rgba(0, 188, 212, 0.3);
+}
+
+.station-image-container {
+    height: 120px; /* ความสูงของรูปภาพ */
+    overflow: hidden;
+    position: relative;
+}
+
+.station-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s;
+}
+
+.dim-image .station-image {
+    opacity: 0.3; 
+}
+
+.station-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.station-name {
+    font-weight: 600;
+    margin: 0;
+}
+
+.station-status {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin: 2px 0 0;
+}
+
+.available-text {
+    color: #4db6ac; /* Teal/Mint color for Available */
+}
+
+.not-available-text {
+    color: #f44336; 
+}
+
+/* ------------------------------------
+    3. BOOKING PANEL (RIGHT SIDE)
+------------------------------------ */
+.booking-panel {
+    width: 35%; /* 1/3 width on large screens */
+    padding: 25px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.booking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.booking-header p {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Toggle Switch Styling */
+.all-day-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #555; /* Dark gray toggle when checked */
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* Booked Slots */
+.booked-slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.slot-active {
+    background-color: #f0f0f0;
+    border-left: 4px solid #616161; /* Darker line for active slot */
+}
+
+.slot-inactive {
+    background-color: #e5e5e5;
+    border-left: 4px solid #424242; /* Even darker line for inactive slot */
+}
+
+.slot-time {
+    padding: 4px 8px;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    font-size: 0.8rem;
+}
+
+/* Confirmed Button */
+.confirmed-button {
+    width: 100%;
+    padding: 15px;
+    margin-top: 25px;
+    background-color: #555; /* Dark Gray */
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.confirmed-button:hover {
+    background-color: #444;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px; 
+    height: 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.4s ease-in-out; 
+    background-color: #ccc; /* ใช้สีเริ่มต้น */
+}
+
+.switch input:checked + .slider {
+    background-color: #555; /* Dark gray toggle when checked */
+}
+
+.slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 20px;
+    transition: all 0.4s ease-in-out;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px; 
+    width: 16px; 
+    background-color: white;
+    transition: all 0.4s ease-in-out;
+    border-radius: 50%;
+    left: 2px;
+    bottom: 2px;
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.booking-slot.selected-slot {
+    /* ใช้สีที่แตกต่างและโดดเด่น เช่น สีฟ้า/เขียว เพื่อบ่งชี้ว่าถูกเลือก */
+    border: 2px solid #3b82f6; /* สีฟ้า */
+    background-color: #e0f2fe; /* สีพื้นหลังอ่อน ๆ */
+    cursor: pointer;
+}
+
+/* ทำให้ Slot ที่มีอยู่เดิมสามารถคลิกได้ด้วย */
+.booking-slot {
+    cursor: pointer;
+}
+
+.station-card { cursor: pointer; border: 2px solid transparent; }
+.station-card.selected { border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+.station-card.disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+
+/* Slot Styling */
+.booked-slot {
+    padding: 15px; background: #f3f4f6; border-radius: 8px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; cursor: pointer;
+    border: 1px solid #e5e7eb;
+}
+.booked-slot:hover { background: #e5e7eb; }
+
+/* Confirmed Button Disable State */
+.confirmed-button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+/* --- MODAL STYLES --- */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); z-index: 1000;
+    display: flex; justify-content: center; align-items: center;
+}
+.modal-content { background: white; padding: 20px; border-radius: 12px; width: 320px; }
+
+/* Date Picker Grid */
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 15px 0; }
+.cal-day { 
+    padding: 10px; text-align: center; border-radius: 50%; cursor: pointer; 
+}
+.cal-day:hover { background: #f3f4f6; }
+.cal-day.selected { background: #333; color: white; }
+.cal-day.empty { pointer-events: none; }
+
+/* Time Picker (Google Style Columns) */
+.time-columns { display: flex; height: 150px; justify-content: center; align-items: center; margin: 20px 0; }
+.time-col { 
+    height: 100%; overflow-y: auto; width: 60px; text-align: center; 
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+.time-col::-webkit-scrollbar { display: none; /* Hide scrollbar Chrome */ }
+
+.time-item { padding: 10px; cursor: pointer; font-size: 1.2rem; color: #aaa; }
+.time-item.selected { color: #000; font-weight: bold; font-size: 1.5rem; }
+.colon { font-size: 2rem; font-weight: bold; margin-top: -15px; }
+
+.selected-time-preview { text-align: center; font-size: 1.2rem; margin-bottom: 10px; font-weight: bold;}
+.apply-btn { width: 100%; background: #333; color: white; padding: 10px; border-radius: 8px; border: none; cursor: pointer; }
+
+.calendar-days-header {
+    display: grid; 
+    grid-template-columns: repeat(7, 1fr); 
+    
+    text-align: center; 
+    font-weight: bold;
+    color: #666; 
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.calendar-grid { 
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 คอลัมน์ */
+    gap: 5px; 
+    margin: 15px 0;
+}
+
+.calendar-days-header > div {
+    padding: 5px 0;
+    font-size: 0.9rem;
+}

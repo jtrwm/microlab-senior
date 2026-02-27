@@ -1,0 +1,95 @@
+{% extends "micro_lab/base.html" %}
+{% load static %}
+
+{% block content %}
+
+     <header class="navbar">
+        <nav class="nav-links">
+            <a href="/">Home</a>
+            <a href="/booking" class="active">Booking</a>
+            <a href="#">all station</a>
+        </nav>
+        <div class="profile-section">
+            <span>My Profile</span>
+            <svg class="profile-icon" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </div>
+    </header>
+
+    <div class="header-section">
+        <div class="hero-image-container">
+            <img src="{% static 'images/lab_hero.jpg' %}" alt="Microscopy Lab" class="hero-image">
+            <div class="booking-button-overlay">
+                <a href="{% url 'booking' %}">
+                <button class="booking-button">Booking</button>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-container">
+
+        <h2 class="section-title">Station Available</h2>
+        
+        <div class="station-grid">
+            {% for station in stations %}
+                <div class="station-card">
+                    {% with filename=station.station_name|lower|cut:' '|add:'.jpg' %}
+                    
+                        <img src="{% static 'images/'|add:filename %}" 
+                            alt="{{ station.station_name }}" 
+                            class="station-image">
+                    
+                    {% endwith %}
+
+                    <div class="station-info">
+                        <h3>Station {{ station.station_name }}</h3>
+                        <span class="status-{{ station.current_status|lower|cut:' ' }}">
+                            {{ station.current_status }}
+                        </span>
+                    </div>
+                </div>
+            {% empty %}
+                <p>No stations are available at this time.</p>
+            {% endfor %}
+        </div>
+
+        <hr>
+
+        <h2 class="section-title">Room Available This Month</h2>
+        
+        <div class="calendar-header">
+            <h3>{{ current_month }}</h3> 
+            <div class="calendar-nav">
+                <button>&lt;</button>
+                <button>&gt;</button>
+            </div>
+        </div>
+
+        <div class="calendar-grid">
+            <div class="day-header">Sun</div>
+            <div class="day-header">Mon</div>
+            <div class="day-header">Tue</div>
+            <div class="day-header">Wed</div>
+            <div class="day-header">Thu</div>
+            <div class="day-header">Fri</div>
+            <div class="day-header">Sat</div>
+
+            {% for week in calendar_data %}
+                {% for day_data in week %}
+                    {% if day_data.status == 'empty' %}
+                        <div class="day-cell empty"></div>
+                    {% else %}
+                        <div class="day-cell {% if day_data.status == 'booked' %}booked{% elif day_data.status == 'available' %}available{% endif %}">
+                            {{ day_data.day }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+    </div>
+
+
+{% endblock content %}

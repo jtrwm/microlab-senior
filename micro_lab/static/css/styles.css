@@ -1,0 +1,171 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f7f7f7;
+}
+
+.content-container {
+    padding: 20px 10%; /* จัดให้อยู่ตรงกลางและมีขอบซ้ายขวา */
+}
+
+.section-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+/* --- ส่วน Hero Image --- */
+.hero-image-container {
+    position: relative;
+    height: 450px; /* ความสูงของ Banner */
+    overflow: hidden;
+}
+
+.hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.booking-button-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.booking-button {
+    background-color: white;
+    color: black;
+    border: none;
+    padding: 10px 30px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 350px;
+}
+
+/* --- ส่วน Station Grid --- */
+.station-grid {
+    display: flex;
+    gap: 20px; /* ระยะห่างระหว่าง Card */
+    overflow-x: auto; /* ให้เลื่อนได้ถ้ารูปเยอะ */
+    padding-bottom: 10px;
+}
+
+.station-card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+    width: 180px; /* กำหนดความกว้างของแต่ละ Card */
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.station-image {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
+.station-info {
+    padding: 10px;
+}
+
+.status-available {
+    color: green;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.status-unavailable {
+    color: #cc3333;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.status-maintenance {
+    color: #ffaa00;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+/* --- ส่วน Calendar --- */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 คอลัมน์สำหรับ 7 วัน */
+    gap: 5px;
+    text-align: center;
+}
+
+.day-header {
+    font-weight: bold;
+    padding: 8px;
+    background-color: #eee;
+}
+
+.day-cell {
+    padding: 10px;
+    border: 1px solid #eee;
+    background-color: white;
+    cursor: pointer;
+}
+
+.day-cell.booked {
+    background-color: #fdd; 
+    color: red;
+    text-align: right;
+}
+
+.day-cell.available {
+    background-color: white; /* สีฟ้า สำหรับวันว่าง */
+    color: gray;
+    text-align: right;
+}
+
+.navbar {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 25px;
+    border-bottom: 1px solid #eee;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.nav-links a {
+    margin-right: 25px;
+    text-decoration: none;
+    color: #666;
+    font-size: 14px;
+    padding-bottom: 2px;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    color: black;
+    font-weight: 600;
+    border-bottom: 2px solid black;
+}
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.profile-icon {
+    width: 24px;
+    height: 24px;
+    color: #999;
+}
