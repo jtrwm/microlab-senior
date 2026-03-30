@@ -77,11 +77,14 @@ WSGI_APPLICATION = "senior_microanatomy_lab.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'senior',
-        'USER': 'postgres',
-        'PASSWORD': '123',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': 'postgres', 
+        'USER': 'postgres.sqastdkrowpwfactzncc', 
+        'PASSWORD': 'thereasonwhywedonthavetimetosleep', 
+        'HOST': 'aws-1-ap-northeast-1.pooler.supabase.com', 
+        'PORT': '6543', 
+        'OPTIONS': {
+            'sslmode': 'require',
+        }
     }
 }
 
@@ -110,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Bangkok"
 
 USE_I18N = True
 

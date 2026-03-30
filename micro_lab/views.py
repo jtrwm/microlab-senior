@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.db import transaction
 from .models import Station, Booking, User
+from django.utils import timezone
 import datetime
 import calendar
 from django.views.decorators.http import require_http_methods
@@ -116,34 +117,24 @@ def booking_view(request):
             start_time_str = request.POST.get('start_time')     
             end_date_str = request.POST.get('end_date')         
             end_time_str = request.POST.get('end_time')         
-            is_all_day = request.POST.get('is_all_day') == 'true'
+            # is_all_day = request.POST.get('is_all_day') == 'true'
 
             # 3. ดึง Station Object
             selected_station = Station.objects.get(pk=station_id)
             
-            # 4. กำหนด Date/Time ตามเงื่อนไข All-day
-            # ---------------------------------------------------------
-            if is_all_day:
-                # กรณี All-day: เริ่ม 00:01 ถึง 23:59 ของ start_date
-                date_obj_str = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                date_obj_end = datetime.datetime.strptime(end_date_str, "%Y-%m-%d").date()
-                
-                # รวมวันที่กับเวลาที่กำหนดเอง (00:01 และ 23:59)
-                start_datetime = datetime.datetime.combine(date_obj_str, datetime.time(0, 1))
-                end_datetime = datetime.datetime.combine(date_obj_end, datetime.time(23, 59))
-                
-            else:
-                # กรณีปกติ: ใช้เวลาที่ส่งมาจาก Form
-                # Format: Date เป็น YYYY-MM-DD และ Time เป็น HH:MM AM/PM
-                DATE_FORMAT = '%Y-%m-%d'
-                TIME_FORMAT = '%I:%M %p' 
-                
-                start_datetime_str = f"{start_date_str} {start_time_str}"
-                end_datetime_str = f"{end_date_str} {end_time_str}"
+            # 4. กำหนด Date/Time 
+            DATE_FORMAT = '%Y-%m-%d'
+            TIME_FORMAT = '%I:%M %p' 
+            
+            start_datetime_str = f"{start_date_str} {start_time_str}"
+            end_datetime_str = f"{end_date_str} {end_time_str}"
 
-                start_datetime = datetime.datetime.strptime(start_datetime_str, f"{DATE_FORMAT} {TIME_FORMAT}")
-                end_datetime = datetime.strptime(end_datetime_str, f"{DATE_FORMAT} {TIME_FORMAT}")
-            # ---------------------------------------------------------
+            start_datetime = datetime.datetime.strptime(start_datetime_str, f"{DATE_FORMAT} {TIME_FORMAT}")
+            end_datetime = datetime.datetime.strptime(end_datetime_str, f"{DATE_FORMAT} {TIME_FORMAT}")
+
+            # ทำให้เป็น Aware Datetime เพื่อลด RuntimeWarning
+            start_datetime = timezone.make_aware(start_datetime)
+            end_datetime = timezone.make_aware(end_datetime)
 
             # 5. Validation: เวลาเริ่มต้องน้อยกว่าเวลาจบ
             if start_datetime >= end_datetime:

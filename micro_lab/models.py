@@ -1,6 +1,3 @@
-##{% load static %}
-##<link href="{% static 'css/styles.css' %}" rel="stylesheet">
-
 from django.db import models
 from django.contrib.auth import get_user_model
 User = get_user_model() # จะชี้ไปที่ auth_user
@@ -11,7 +8,7 @@ class Station(models.Model):
     # เช่น ถ้าคอลัมน์ PK คือ 'station_id'
     station_id = models.CharField(max_length=20, primary_key=True)
     station_name = models.CharField(max_length=255) 
-    station_type = models.CharField(max_length=255)
+    station_details = models.TextField(null=True, blank=True)
     current_status = models.CharField(max_length=255)
     
     class Meta:

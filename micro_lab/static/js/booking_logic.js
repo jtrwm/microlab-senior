@@ -9,7 +9,7 @@ let currentCalendarMonth = initialDate.getMonth() + 1;
 
 document.addEventListener('DOMContentLoaded', () => {
     renderTimeColumns();
-    initAllDayToggle();
+    //initAllDayToggle();
     initDatePicker();
     initTimePicker();
     validateForm();
@@ -245,8 +245,7 @@ function applyTime() {
 function validateForm() {
     // 1. ดึง Element และค่าอย่างปลอดภัย (จัดการกรณี null)
     const station = document.getElementById('inputStationId').value;
-    const allDay = document.getElementById('allDayToggle').checked;
-
+    //const allDay = document.getElementById('allDayToggle').checked;
     const dateStart = document.getElementById('inputStartDate');
     const timeStart = document.getElementById('inputStartTime'); 
     const timeEnd = document.getElementById('inputEndTime');
@@ -260,19 +259,19 @@ function validateForm() {
     
     // 2. Logic การตรวจสอบความครบถ้วน
     // ต้องเลือก Station และ Start Date เสมอ
-    if (station && dateStart) {
-        if (allDay) {
-            // เงื่อนไข 1: ถ้า All-day ถูกติ๊ก -> ผ่านได้เลย
-            btn.disabled = false;
-        } else if (timeStartValue && timeEndValue) { 
-            // เงื่อนไข 2: ถ้าไม่ใช่ All-day -> ต้องมี Start Time และ End Time
+    if (stationId && dateStart && startTime && endTime) {
+        const startMin = timeToMinutes(startTime);
+        const endMin = timeToMinutes(endTime);
+
+        if (startMin < endMin) {
             btn.disabled = false;
         } else {
-            // ขาดเวลา
+            // ถ้าเวลาจบดันมาก่อนเวลาเริ่ม ให้กดไม่ได้
             btn.disabled = true;
         }
     } else {
-        // ขาด Station หรือ Start Date
         btn.disabled = true;
     }
+    document.getElementById('selectStartTime').addEventListener('change', validateForm);
+    document.getElementById('selectEndTime').addEventListener('change', validateForm);
 }

@@ -44,7 +44,8 @@
                     {% endwith %}
 
                     <div class="station-info">
-                        <h3>Station {{ station.station_name }}</h3>
+                        <h3 style="margin-bottom: 0.5em;">Station {{ station.station_id }}</h3>
+                        <p class="station-details" style="margin-top: 0;">{{ station.station_details }}</p>
                         <span class="status-{{ station.current_status|lower|cut:' ' }}">
                             {{ station.current_status }}
                         </span>
