@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTimeColumns();
     //initAllDayToggle();
     initDatePicker();
-    initTimePicker();
+    //initTimePicker();
     validateForm();
 });
 
@@ -19,7 +19,13 @@ function selectStation(card, isAvailable) {
     if (isAvailable === 'False') return;
     document.querySelectorAll('.station-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
-    document.getElementById('inputStationId').value = card.dataset.id;
+    const stationId = card.dataset.id;
+    document.getElementById('inputStationId').value = stationId;
+
+    // เติมข้อมูลเวลาลงใน Dropdown ทั้ง 2 อัน
+    populateDropdown('selectStartTime', stationId);
+    populateDropdown('selectEndTime', stationId);
+    
     validateForm();
 }
 
@@ -242,36 +248,101 @@ function applyTime() {
     validateForm();
 }
 
-function validateForm() {
-    // 1. ดึง Element และค่าอย่างปลอดภัย (จัดการกรณี null)
-    const station = document.getElementById('inputStationId').value;
-    //const allDay = document.getElementById('allDayToggle').checked;
-    const dateStart = document.getElementById('inputStartDate');
-    const timeStart = document.getElementById('inputStartTime'); 
-    const timeEnd = document.getElementById('inputEndTime');
+function populateDropdown(selectId, stationId) {
+    const selectEl = document.getElementById(selectId);
+    if (!selectEl) return; 
 
+    selectEl.innerHTML = `<option value="">Select Time</option>`;
+    
+    // ดึงข้อมูลจองจากตัวแปร bookedData ที่ส่งมาจาก Views (Django)
+    // ถ้ายังไม่ได้ทำส่วนนี้ ให้ลอง comment บรรทัด filter ออกก่อนเพื่อทดสอบว่าเวลาขึ้นไหม
+    const stationBookings = (typeof bookedData !== 'undefined') 
+        ? bookedData.filter(b => String(b.station_id) === String(stationId))
+        : [];
+
+    for (let h = 6; h <= 22; h++) {
+        for (let m of ['00', '30']) {
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            let displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+            
+            let timeStr = `${String(displayHour).padStart(2, '0')}:${m} ${ampm}`;
+            
+            // สร้าง Option ใหม่
+            let option = document.createElement('option');
+            option.value = timeStr;
+            option.text = timeStr;
+
+            // เช็คว่าชนกับคนอื่นไหม (ถ้ามีฟังก์ชัน timeToMinutes แล้ว)
+            if (typeof timeToMinutes === 'function') {
+                let currentMin = timeToMinutes(timeStr);
+                let isBooked = stationBookings.some(b => {
+                    let start = timeToMinutes(b.start);
+                    let end = timeToMinutes(b.end);
+                    return currentMin >= start && currentMin < end;
+                });
+                
+                if (isBooked) {
+                    option.disabled = true;
+                    option.text += " (Booked)";
+                }
+            }
+
+            selectEl.appendChild(option);
+        }
+    }
+}
+
+function timeToMinutes(timeStr) {
+    if (!timeStr) return 0;
+    // แปลง "09:30 AM" เป็นนาทีรวม
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':');
+    if (hours === '12') hours = '00';
+    if (modifier === 'PM') hours = String(parseInt(hours, 10) + 12);
+    return parseInt(hours, 10) * 60 + parseInt(minutes, 10);
+}
+
+function validateForm() {
+    console.log("DEBUG VALUES ->", {
+        station: document.getElementById('inputStationId').value,
+        date: document.getElementById('inputStartDate').value,
+        start: document.getElementById('selectStartTime').value,
+        end: document.getElementById('selectEndTime').value
+    });
+    const stationId = document.getElementById('inputStationId').value;
+    //const allDay = document.getElementById('allDayToggle').checked;
+    const dateStart = document.getElementById('inputStartDate').value;
+    const startTime = document.getElementById('selectStartTime').value;
+    const endTime = document.getElementById('selectEndTime').value;
     const btn = document.getElementById('confirmBtn');
 
-    // ดึงค่าอย่างปลอดภัยจาก Element
-    const dateStartValue = dateStart ? dateStart.value : '';
-    const timeStartValue = timeStart ? timeStart.value : '';
-    const timeEndValue = timeEnd ? timeEnd.value : '';
-    
-    // 2. Logic การตรวจสอบความครบถ้วน
-    // ต้องเลือก Station และ Start Date เสมอ
+    // 2. ตรวจสอบความครบถ้วน
+    // ต้องมี Station, วันที่, เวลาเริ่ม และเวลาจบ
     if (stationId && dateStart && startTime && endTime) {
         const startMin = timeToMinutes(startTime);
         const endMin = timeToMinutes(endTime);
 
+        // เงื่อนไข: เวลาเริ่มต้องน้อยกว่าเวลาจบ
         if (startMin < endMin) {
             btn.disabled = false;
+            btn.style.opacity = "1"; // แถม: ให้ปุ่มดูชัดขึ้น
         } else {
-            // ถ้าเวลาจบดันมาก่อนเวลาเริ่ม ให้กดไม่ได้
             btn.disabled = true;
+            btn.style.opacity = "0.5";
         }
     } else {
         btn.disabled = true;
+        btn.style.opacity = "0.5";
     }
-    document.getElementById('selectStartTime').addEventListener('change', validateForm);
-    document.getElementById('selectEndTime').addEventListener('change', validateForm);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ผูกเหตุการณ์ให้ทำงานเมื่อมีการเปลี่ยนค่าใน Dropdown หรือวันที่
+    const startSelect = document.getElementById('selectStartTime');
+    const endSelect = document.getElementById('selectEndTime');
+    const dateInput = document.getElementById('inputStartDate');
+
+    if(startSelect) startSelect.addEventListener('change', validateForm);
+    if(endSelect) endSelect.addEventListener('change', validateForm);
+    if(dateInput) dateInput.addEventListener('change', validateForm);
+});

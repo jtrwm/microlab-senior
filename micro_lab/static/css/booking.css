@@ -399,3 +399,30 @@ input:checked + .slider:before {
     font-size: 0.9rem;
 }
 
+.time-dropdown-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    padding: 5px;
+    cursor: pointer;
+    outline: none;
+}
+
+/* ตกแต่งตัวเลือกที่ถูกจองแล้ว */
+.time-dropdown-input option:disabled {
+    color: #ccc;
+    text-decoration: line-through;
+}
+
+/* ปรับแต่ง Container ของ slot ให้ดูเป็นระเบียบ */
+.booked-slot {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+}

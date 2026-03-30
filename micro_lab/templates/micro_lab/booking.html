@@ -71,9 +71,11 @@
                     <span class="icon">📅</span>
                 </div>
 
-                <div class="booked-slot slot-inactive" id="timeSlotStartBtn" style="display: none;">
-                    <span id="displayTimeStart">Select Time</span>
+                <div class="booked-slot slot-active">
                     <span class="icon">⏰</span>
+                    <select name="start_time" id="selectStartTime" class="time-dropdown-input">
+                        <option value="">Select Start Time</option>
+                        </select>
                 </div>
 
                 <div class="booked-slot slot-active" id="dateSlotEndBtn">
@@ -81,9 +83,11 @@
                     <span class="icon">📅</span>
                 </div>
 
-                <div class="booked-slot slot-inactive" id="timeSlotEndBtn" style="display: none;">
-                    <span id="displayTimeEnd">Select Time</span>
+                <div class="booked-slot slot-active">
                     <span class="icon">⏰</span>
+                    <select name="end_time" id="selectEndTime" class="time-dropdown-input">
+                        <option value="">Select End Time</option>
+                        </select>
                 </div>
 
                 <button type="submit" class="confirmed-button" id="confirmBtn" disabled>
