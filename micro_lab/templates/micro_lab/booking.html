@@ -76,8 +76,7 @@
                 </div>
 
                 <div class="booked-slot slot-active" id="dateSlotStartBtn">
-                    <span id="displayDateStart">{{ default_date_display }}</span>
-                    <span class="icon">📅</span>
+                    <span id="displayDateStart">{{ selected_date }}</span> <span class="icon">📅</span>
                 </div>
 
                 <div class="booked-slot slot-active">
@@ -91,6 +90,8 @@
                     <span id="displayDateEnd">{{ default_date_display }}</span>
                     <span class="icon">📅</span>
                 </div>
+                <input type="date" id="displayDateEnd" name="end_date" value="{{ selected_date }}" style="display: none;">
+                
 
                 <div class="booked-slot slot-active">
                     <span class="icon">⏰</span>

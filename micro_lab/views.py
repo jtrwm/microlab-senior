@@ -105,6 +105,19 @@ def home_view(request):
 
 @require_http_methods(["GET", "POST"])
 def booking_view(request):
+    selected_date_str = request.GET.get('date') 
+    if selected_date_str:
+        target_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+    else:
+        target_date = datetime.date.today()
+
+    # 2. จากนั้นค่อยเอา target_date ไป Filter การจอง
+    # ถ้าคุณเอาบรรทัดนี้ไปไว้ข้างบนสุด มันจะดึงของ "วันนี้" ตลอดเวลา
+    existing_bookings = Booking.objects.filter(
+        reservation_date=target_date, # ต้องใช้ตัวแปรที่รับมาจากด้านบน
+        booking_status='CONFIRMED'
+    )
+    
     # --- 1. จัดการ POST Request (บันทึกข้อมูล) ---
     if request.method == 'POST':
         try:
@@ -254,9 +267,8 @@ def booking_view(request):
     # ส่ง error_message (ถ้ามีจาก catch block ด้านบน แต่ปกติ redirect จะทำงานก่อน)
     context = {
         'stations': stations_list,
-        # 'error_message': ... (ปกติใช้ messages framework แทนแล้ว)
-        'stations': stations_list,
         'booked_slots_json': json.dumps(booked_slots),
+        'selected_date': target_date.strftime('%Y-%m-%d'),
     }
     return render(request, 'micro_lab/booking.html', context)
         

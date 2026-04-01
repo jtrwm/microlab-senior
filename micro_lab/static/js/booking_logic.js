@@ -9,10 +9,27 @@ let currentCalendarMonth = initialDate.getMonth() + 1;
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    const selectStart = document.getElementById('selectStartTime');
+    const selectEnd = document.getElementById('selectEndTime');
+
+    if (selectStart) {
+        selectStart.addEventListener('change', (e) => {
+            document.getElementById('inputStartTime').value = e.target.value; // อัปเดต Hidden Input
+            validateForm(); // เรียกเช็คค่าเพื่อ Debug และเปิดปุ่ม
+        });
+    }
+
+    if (selectEnd) {
+        selectEnd.addEventListener('change', (e) => {
+            // --- จุดที่น่าจะพลาด: ต้องอัปเดตค่าเข้า Hidden Input ของ End ด้วย ---
+            document.getElementById('inputEndTime').value = e.target.value; 
+            validateForm(); // คราวนี้ DEBUG VALUES จะเห็นค่า End แล้วครับ
+        });
+    }
+    
+    // ส่วนอื่นๆ ปล่อยไว้เหมือนเดิม
     renderTimeColumns();
-    //initAllDayToggle();
     initDatePicker();
-    //initTimePicker();
     validateForm();
 });
 
@@ -252,11 +269,13 @@ function applyTime() {
 function populateDropdown(selectId, stationId) {
     const selectEl = document.getElementById(selectId);
     if (!selectEl) return; 
+    const hiddenInputId = selectId === 'selectStartTime' ? 'inputStartTime' : 'inputEndTime';
+    const hiddenInput = document.getElementById(hiddenInputId);
+    if (hiddenInput) hiddenInput.value = ""; 
+
     selectEl.innerHTML = `<option value="">Select Time</option>`;
     
-    // ดึงข้อมูลจองจากตัวแปร bookedData ที่ส่งมาจาก Views (Django)
-    // ถ้ายังไม่ได้ทำส่วนนี้ ให้ลอง comment บรรทัด filter ออกก่อนเพื่อทดสอบว่าเวลาขึ้นไหม
-    const stationBookings = (typeof bookedData !== 'undefined') 
+    const stationBookings = (typeof bookedData !== 'undefined' && bookedData !== null) 
         ? bookedData.filter(b => String(b.station_id).trim() === String(stationId).trim())
         : [];
 
@@ -307,8 +326,9 @@ function timeToMinutes(timeStr) {
 function validateForm() {
     console.log("DEBUG VALUES ->", {
         station: document.getElementById('inputStationId').value,
-        date: document.getElementById('inputStartDate').value,
+        date_str: document.getElementById('inputStartDate').value,
         start: document.getElementById('selectStartTime').value,
+        date_end: document.getElementById('inputEndDate').value,
         end: document.getElementById('selectEndTime').value
     });
     const stationId = document.getElementById('inputStationId').value;
