@@ -7,6 +7,7 @@ import calendar
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 import uuid
+import json
 
 def get_processed_stations(selected_pk=None):
     """
@@ -153,7 +154,8 @@ def booking_view(request):
             
             if overlapping_bookings.exists():
                 # ถ้าเจอรายการที่ชนกัน ให้แจ้ง Error ว่า "Unavailable"
-                raise ValueError(f"Station นี้ไม่ว่าง (Unavailable) ในช่วงเวลา {start_datetime.strftime('%H:%M')} - {end_datetime.strftime('%H:%M')} กรุณาเลือกเวลาอื่น")
+                messages.error(request,f"Station นี้ไม่ว่าง (Unavailable) ในช่วงเวลา {start_datetime.strftime('%H:%M')} - {end_datetime.strftime('%H:%M')} กรุณาเลือกเวลาอื่น")
+                return redirect('booking')
             # 6. เตรียมข้อมูลสำหรับ Database Field
             booking_pk = str(uuid.uuid4())
             
@@ -209,7 +211,8 @@ def booking_view(request):
             print("Traceback:")
             print(traceback.format_exc()) # บรรทัดนี้จะบอกจุดตาย
             print("-------------------------------------------")
-            messages.error(request, f'บันทึกไม่ได้: {e}')
+            messages.error(request, f"เกิดข้อผิดพลาด: {str(e)}")
+            return redirect('booking_url_name')
             
     # --- 2. จัดการ GET Request (แสดงหน้าเว็บ) ---
     selected_date_str = request.GET.get('date') 
@@ -220,10 +223,40 @@ def booking_view(request):
     
     stations_list = get_processed_stations(target_date=target_date)
     
+    # 1. ดึงรายการจองที่ยืนยันแล้วของ "วันที่เลือก" เท่านั้น
+    existing_bookings = Booking.objects.filter(
+        reservation_date=target_date,
+        booking_status='CONFIRMED'
+    )
+
+    # 2. แปลงเป็น List เพื่อส่งให้ JavaScript
+    booked_slots = []
+    for b in existing_bookings:
+        start_dt = b.daystart
+        # เช็คและทำให้เป็น Aware โดยใช้ datetime.timezone.utc
+        if timezone.is_naive(start_dt):
+            start_dt = timezone.make_aware(start_dt, datetime.timezone.utc)
+            
+        end_dt = b.dayend
+        if timezone.is_naive(end_dt):
+            end_dt = timezone.make_aware(end_dt, datetime.timezone.utc)
+
+        # แปลงเป็นเวลาไทย
+        local_start = timezone.localtime(start_dt)
+        local_end = timezone.localtime(end_dt)
+
+        booked_slots.append({
+            'station_id': str(b.station_id).strip(),
+            'start': local_start.strftime('%I:%M %p'),
+            'end': local_end.strftime('%I:%M %p')
+    })
+    
     # ส่ง error_message (ถ้ามีจาก catch block ด้านบน แต่ปกติ redirect จะทำงานก่อน)
     context = {
         'stations': stations_list,
         # 'error_message': ... (ปกติใช้ messages framework แทนแล้ว)
+        'stations': stations_list,
+        'booked_slots_json': json.dumps(booked_slots),
     }
     return render(request, 'micro_lab/booking.html', context)
         

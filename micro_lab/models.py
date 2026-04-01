@@ -38,6 +38,7 @@ class Booking(models.Model):
     booking_date = models.DateField()      # DEFAULT CURRENT_DATE
     reservation_date = models.DateField()  # NOT NULL
     
+    created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         db_table = 'booking'
         managed = False

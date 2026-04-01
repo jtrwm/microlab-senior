@@ -1,4 +1,13 @@
 {% load static %}
+
+<script>
+    // รับก้อนข้อมูลจาก Django
+    const bookedData = {{ booked_slots_json|safe }};
+    console.log("Booked Data Loaded:", bookedData); // ลองเปิด F12 เช็คดูว่ามีข้อมูลไหม
+</script>
+
+<script src="{% static 'js/booking_logic.js' %}"></script>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -136,4 +145,5 @@
 
     <script src="{% static 'js/booking_logic.js' %}"></script>
 </body>
+
 </html>

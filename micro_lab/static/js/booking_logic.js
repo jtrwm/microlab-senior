@@ -7,6 +7,7 @@ let currentPickerTarget = 'start';
 let currentCalendarYear = initialDate.getFullYear();
 let currentCalendarMonth = initialDate.getMonth() + 1;
 
+
 document.addEventListener('DOMContentLoaded', () => {
     renderTimeColumns();
     //initAllDayToggle();
@@ -251,13 +252,12 @@ function applyTime() {
 function populateDropdown(selectId, stationId) {
     const selectEl = document.getElementById(selectId);
     if (!selectEl) return; 
-
     selectEl.innerHTML = `<option value="">Select Time</option>`;
     
     // ดึงข้อมูลจองจากตัวแปร bookedData ที่ส่งมาจาก Views (Django)
     // ถ้ายังไม่ได้ทำส่วนนี้ ให้ลอง comment บรรทัด filter ออกก่อนเพื่อทดสอบว่าเวลาขึ้นไหม
     const stationBookings = (typeof bookedData !== 'undefined') 
-        ? bookedData.filter(b => String(b.station_id) === String(stationId))
+        ? bookedData.filter(b => String(b.station_id).trim() === String(stationId).trim())
         : [];
 
     for (let h = 6; h <= 22; h++) {
@@ -284,6 +284,8 @@ function populateDropdown(selectId, stationId) {
                 if (isBooked) {
                     option.disabled = true;
                     option.text += " (Booked)";
+                    option.style.color = "#ccc"; 
+                    option.style.textDecoration = "line-through";
                 }
             }
 
@@ -346,3 +348,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if(endSelect) endSelect.addEventListener('change', validateForm);
     if(dateInput) dateInput.addEventListener('change', validateForm);
 });
+
