@@ -1,0 +1,39 @@
+<div class="calendar-header">
+    <h3>{{ current_month }}</h3> 
+    <div class="calendar-nav">
+        <a href="javascript:void(0);" onclick="loadMonth('{{ prev_year }}', '{{ prev_month }}')" class="nav-btn">&lt;</a>
+        <a href="javascript:void(0);" onclick="loadMonth('{{ next_year }}', '{{ next_month }}')" class="nav-btn">&gt;</a>
+    </div>
+</div>
+
+<div class="calendar-grid">
+            <div class="day-header">Sun</div>
+            <div class="day-header">Mon</div>
+            <div class="day-header">Tue</div>
+            <div class="day-header">Wed</div>
+            <div class="day-header">Thu</div>
+            <div class="day-header">Fri</div>
+            <div class="day-header">Sat</div>
+
+            {% for week in calendar_data %}
+                {% for day_data in week %}
+                    {% if day_data.status == 'empty' %}
+                        <div class="day-cell empty"></div>
+                    {% else %}
+                        <div class="day-cell {{ day_data.status }}">
+                            <div class="day-number">{{ day_data.day }}</div>
+                            
+                            <div class="daily-booking-list">
+                                {% for b in day_data.bookings %}
+                                    <div class="booking-tag">
+                                        <strong>St.{{ b.station_id }}</strong> {{ b.time_range }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+    </div>

@@ -2,7 +2,36 @@
 {% load static %}
 
 {% block content %}
-
+    <style>
+        .day-cell {
+            min-height: 80px; /* ขยายให้สูงพอแสดงรายการจอง */
+            padding: 5px;
+            font-size: 0.85rem;
+        }
+        .booking-tag {
+            background: #e3f2fd; /* สีฟ้าอ่อน */
+            color: #0d47a1;     /* ตัวอักษรน้ำเงินเข้ม */
+            padding: 2px 4px;
+            margin-top: 3px;
+            border-radius: 4px;
+            font-size: 10px;    /* ตัวอักษรจิ๋วเพื่อให้ไม่ล้น */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .nav-btn {
+            text-decoration: none;
+            padding: 5px 15px;
+            background: #f0f0f0;
+            color: black;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            display: inline-block;
+        }
+        .nav-btn:hover {
+            background: #e0e0e0;
+        }
+    </style>
      <header class="navbar">
         <nav class="nav-links">
             <a href="/">Home</a>
@@ -58,39 +87,34 @@
 
         <hr>
 
-        <h2 class="section-title">Room Available This Month</h2>
+        <h2 class="section-title">Station Available This Month</h2>
         
-        <div class="calendar-header">
-            <h3>{{ current_month }}</h3> 
-            <div class="calendar-nav">
-                <button>&lt;</button>
-                <button>&gt;</button>
-            </div>
+        <div id="calendar-wrapper">
+            {% include 'micro_lab/calendar_partial.html' %}
         </div>
 
-        <div class="calendar-grid">
-            <div class="day-header">Sun</div>
-            <div class="day-header">Mon</div>
-            <div class="day-header">Tue</div>
-            <div class="day-header">Wed</div>
-            <div class="day-header">Thu</div>
-            <div class="day-header">Fri</div>
-            <div class="day-header">Sat</div>
-
-            {% for week in calendar_data %}
-                {% for day_data in week %}
-                    {% if day_data.status == 'empty' %}
-                        <div class="day-cell empty"></div>
-                    {% else %}
-                        <div class="day-cell {% if day_data.status == 'booked' %}booked{% elif day_data.status == 'available' %}available{% endif %}">
-                            {{ day_data.day }}
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-        </div>
-
-    </div>
+        <script>
+        async function loadMonth(year, month) {
+            const url = `/?year=${year}&month=${month}`;
+            
+            try {
+                // ส่ง Request ไปยัง Django พร้อม Header พิเศษเพื่อบอกว่าเป็น AJAX
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    // อัปเดตเฉพาะส่วนปฏิทินโดยไม่รีโหลดหน้า
+                    document.getElementById('calendar-wrapper').innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+            }
+        }
+        </script>
 
 
 {% endblock content %}

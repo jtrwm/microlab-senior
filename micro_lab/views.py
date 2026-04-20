@@ -11,8 +11,8 @@ import json
 from django.http import JsonResponse
 import datetime
 from django.utils import timezone
+from datetime import date
 from .models import Booking
-
 
 def get_processed_stations(selected_pk=None):
     """
@@ -46,31 +46,56 @@ def get_processed_stations(selected_pk=None):
         
     return processed_stations
 
-# ----------------------------------------------------------------------
-# 1. Home View (แสดง Station Grid และ Calendar)
-# ----------------------------------------------------------------------
-
-def home_view(request):
-    
-    # ดึงสถานีที่ผ่านการประมวลผล (ไม่มีการเลือกสถานีเริ่มต้นในหน้า Home)
-    available_stations = get_processed_stations(selected_pk=None)
-    
+def home_view(request):  
     # ตั้งค่าเดือน/ปีเป้าหมาย (ใช้เดือนปัจจุบันหากต้องการให้เป็น Dynamic)
     today = datetime.date.today()
-    target_year = today.year
-    target_month = today.month
-    
+    try:
+        target_year = int(request.GET.get('year', today.year))
+        target_month = int(request.GET.get('month', today.month))
+    except ValueError:
+        target_year = today.year
+        target_month = today.month
+    # เดือนก่อนหน้า
+    if target_month == 1:
+        prev_month = 12
+        prev_year = target_year - 1
+    else:
+        prev_month = target_month - 1
+        prev_year = target_year
+
+    # เดือนถัดไป
+    if target_month == 12:
+        next_month = 1
+        next_year = target_year + 1
+    else:
+        next_month = target_month + 1
+        next_year = target_year
+        
+    available_stations = get_processed_stations(selected_pk=None)
     current_month_str = datetime.date(target_year, target_month, 1).strftime("%B %Y")
     
-    # ดึงข้อมูลการจองทั้งหมดสำหรับเดือนนั้น
-    # ใช้ค่า Booking.booking_date ที่มีอยู่จริงในตาราง
-    booked_dates_qs = Booking.objects.filter(
-        booking_date__year=target_year,
-        booking_date__month=target_month
-    ).values_list('booking_date', flat=True) 
+    bookings_qs = Booking.objects.filter(
+        reservation_date__year=target_year,
+        reservation_date__month=target_month,
+        booking_status='CONFIRMED'
+    ).order_by('station_id', 'daystart')
     
-    # แปลงเป็นเซ็ตของวันที่เพื่อให้ค้นหาได้เร็ว 
-    booked_dates_set = {date.day for date in booked_dates_qs}
+    # 4. จัดกลุ่มการจองลงใน Dictionary โดยใช้ 'วันที่' เป็น Key
+    # โครงสร้าง: { 21: [booking1, booking2], 22: [...] }
+    bookings_by_day = {}
+    for b in bookings_qs:
+        day = b.reservation_date.day
+        if day not in bookings_by_day:
+            bookings_by_day[day] = []
+        
+        # จัดฟอร์แมตเวลาให้สั้นลง (เช่น 01:00 PM -> 1 PM)
+        start_t = b.daystart.strftime('%I:%M %p').lstrip('0').lower()
+        end_t = b.dayend.strftime('%I:%M %p').lstrip('0').lower()
+        
+        bookings_by_day[day].append({
+            'station_id': b.station_id,
+            'time_range': f"{start_t} - {end_t}"
+        })
     
     # สร้างโครงสร้างปฏิทิน
     cal = calendar.Calendar(firstweekday=calendar.SUNDAY)
@@ -83,30 +108,39 @@ def home_view(request):
         week_data = []
         for day, weekday in week:
             if day == 0:
-                # วันที่ว่าง (วันที่ 0 คือช่องว่างในปฏิทิน)
-                week_data.append({'day': '', 'status': 'empty'})
+                week_data.append({'day': '', 'status': 'empty', 'bookings': []})
             else:
+                # ดึงรายการจองของวันนั้นๆ มาจาก Dictionary ที่เราเตรียมไว้
+                daily_bookings = bookings_by_day.get(day, [])
+                
                 status = 'available'
-                if day in booked_dates_set:
+                if daily_bookings:
                     status = 'booked'
                 
                 week_data.append({
                     'day': day, 
                     'status': status, 
-                    'weekday': weekday
+                    'weekday': weekday,
+                    'bookings': daily_bookings # 🚀 ส่ง List ของการจองไปให้หน้า Home
                 })
         calendar_data.append(week_data)
 
     context = {
         'stations': available_stations,
         'current_month': current_month_str,
-        'calendar_data': calendar_data, 
+        'calendar_data': calendar_data,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
     }
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'micro_lab/calendar_partial.html', context)
+    
+    # ถ้าเป็นการเข้าหน้าเว็บปกติ ให้ส่งหน้าเต็มไป
     return render(request, 'micro_lab/home.html', context)
 
-# ----------------------------------------------------------------------
-# 2. Booking Detail View (แสดง Station Grid และ Booking Panel)
-# ----------------------------------------------------------------------
+
 
 @require_http_methods(["GET", "POST"])
 def booking_view(request):
@@ -316,9 +350,6 @@ def get_processed_stations(selected_pk=None, target_date=None):
         processed_stations.append(station)
         
     return processed_stations
-
-# ... และใน booking_view (GET Logic) ...
-
 
 def api_get_booked_slots(request):
     date_str = request.GET.get('date')
