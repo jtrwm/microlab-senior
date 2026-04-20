@@ -191,7 +191,7 @@ def booking_view(request):
             with transaction.atomic():
                 print(f"DEBUG POST START: {start_date_str}")
                 print(f"DEBUG POST END: {end_date_str}")
-                Booking.objects.create(
+                new_booking = Booking.objects.create(
                     booking_id=booking_pk, 
                     station_id=selected_station.pk, 
                     
@@ -214,7 +214,7 @@ def booking_view(request):
             # 8. แจ้งเตือนและ Redirect
             print("--- SAVE SUCCESSFUL ---")
             messages.success(request, 'บันทึกการจองเรียบร้อยแล้ว')
-            return redirect('home')
+            return redirect('booking_complete', booking_id=new_booking.booking_id)
 
         except Station.DoesNotExist:
             messages.error(request, 'ไม่พบ Station ที่ถูกเลือก')
@@ -351,3 +351,14 @@ def api_get_booked_slots(request):
         })
 
     return JsonResponse({'booked_slots': booked_slots})
+
+def booking_complete(request, booking_id):
+    try:
+        booking = Booking.objects.get(booking_id=booking_id)
+        booking_obj = Booking.objects.get(booking_id=booking_id)
+        station_obj = Station.objects.get(station_id=booking_obj.station_id)
+        booking_obj.station_name = station_obj.station_name
+        # แก้ตรงนี้: เติม micro_lab/ นำหน้าชื่อไฟล์
+        return render(request, 'micro_lab/booking_complete.html', {'booking': booking_obj})
+    except (Booking.DoesNotExist, Station.DoesNotExist):
+        return render(request, 'micro_lab/404.html')

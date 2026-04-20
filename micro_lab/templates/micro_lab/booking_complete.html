@@ -1,0 +1,155 @@
+{% load static %}  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Complete</title>
+    <link rel="stylesheet" href="{% static 'css/booking.css' %}">
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #ffffff;
+            margin-top: -7px;
+        }
+        .navbar {
+            width: 100% !important;
+            max-width: none !important; 
+            box-sizing: border-box;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .complete-container {
+            width: 100%; 
+            min-height: 80vh; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 50px; 
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+        .card {
+            display: flex;
+            align-items: center;
+            gap: 25px; 
+            padding: 10px;
+            max-width: 800px;  
+            width: 90%;
+            max-width: 550px;
+        }
+        .info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .info .station-name {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .info .date {
+            font-size: 14px;
+            color: #555;
+        }
+        .btn-history {
+            margin-top: 30px;
+            padding: 15px 40px;
+            background-color: #4a4a4a;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+        .station-image {
+            width: 180px;       
+            height: 180px;      
+            border-radius: 20px; 
+            object-fit: cover;
+            display: block;   
+            overflow: hidden;
+        }
+        .station-image-container {
+            width: 180px;
+            height: 180px;
+            overflow: hidden; 
+            border-radius: 20px; 
+        }
+        .info .date {
+            font-size: 1.1rem;
+            color: #2d3436;
+        }
+        .info .time {
+            color: #2d3436; 
+            margin-left: 5px;
+        }
+
+        strong {
+            color: #4a4a4a;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<header class="navbar">
+    <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/booking" class="active">Booking</a>
+        <a href="#">all station</a>
+    </nav>
+    <div class="profile-section">
+        <span>My Profile</span>
+        <svg class="profile-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+    </div>
+</header>
+
+<body>
+
+    <h1>Booking Complet</h1>
+
+    <div class="card">
+        <div class="station-image-container">
+        {% with filename=booking.station_name|lower|cut:' '|add:'.jpg' %}
+            <img src="{% static 'images/'|add:filename %}" 
+                 alt="{{ booking.station_name }}" 
+                 class="station-image">
+        {% endwith %}
+    </div>
+        <div class="info">
+            <div class="station-name">Station {{ booking.station_id }}</div>
+            <div class="date">
+                <strong>Start:</strong> {{ booking.daystart|date:"l, d M Y" }} 
+                <span class="time">at {{ booking.daystart|date:"h:i A" }}</span>
+            </div>
+            
+            <div class="date">
+                <strong>End:</strong> {{ booking.dayend|date:"l, d M Y" }} 
+                <span class="time">at {{ booking.dayend|date:"h:i A" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <a href="/" class="btn-history">Back to Home</a>
+
+</body>
+</html>
