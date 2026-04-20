@@ -13,6 +13,7 @@ class Station(models.Model):
     
     class Meta:
         db_table = 'station'
+        ordering = ['pk']
         managed = False           # ***สำคัญ: ห้าม Django จัดการตารางนี้***
     
     def __str__(self):

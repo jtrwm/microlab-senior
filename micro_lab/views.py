@@ -8,6 +8,11 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 import uuid
 import json
+from django.http import JsonResponse
+import datetime
+from django.utils import timezone
+from .models import Booking
+
 
 def get_processed_stations(selected_pk=None):
     """
@@ -184,6 +189,8 @@ def booking_view(request):
             print(f"DEBUG: User ID type: {type(user_pk)} Value: {user_pk}")
             # 7. บันทึกลง Database ด้วย Transaction
             with transaction.atomic():
+                print(f"DEBUG POST START: {start_date_str}")
+                print(f"DEBUG POST END: {end_date_str}")
                 Booking.objects.create(
                     booking_id=booking_pk, 
                     station_id=selected_station.pk, 
@@ -233,7 +240,9 @@ def booking_view(request):
         target_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
     else:
         target_date = datetime.date.today()
-    
+        
+    #stations = get_processed_stations() # เรียกใช้ฟังก์ชันที่ปรับปรุงแล้ว
+    #available_stations = stations # ใช้ชื่อตัวแปรให้ชัดเจน
     stations_list = get_processed_stations(target_date=target_date)
     
     # 1. ดึงรายการจองที่ยืนยันแล้วของ "วันที่เลือก" เท่านั้น
@@ -309,5 +318,36 @@ def get_processed_stations(selected_pk=None, target_date=None):
     return processed_stations
 
 # ... และใน booking_view (GET Logic) ...
-stations = get_processed_stations() # เรียกใช้ฟังก์ชันที่ปรับปรุงแล้ว
-available_stations = stations # ใช้ชื่อตัวแปรให้ชัดเจน
+
+
+def api_get_booked_slots(request):
+    date_str = request.GET.get('date')
+    if not date_str:
+        return JsonResponse({'booked_slots': []})
+
+    target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    
+    # ดึงการจองของวันที่เลือก ที่ยืนยันแล้ว
+    existing_bookings = Booking.objects.filter(
+        reservation_date=target_date,
+        booking_status='CONFIRMED'
+    )
+
+    booked_slots = []
+    for b in existing_bookings:
+        start_dt = b.daystart
+        end_dt = b.dayend
+        
+        if timezone.is_naive(start_dt): start_dt = timezone.make_aware(start_dt, datetime.timezone.utc)
+        if timezone.is_naive(end_dt): end_dt = timezone.make_aware(end_dt, datetime.timezone.utc)
+
+        local_start = timezone.localtime(start_dt)
+        local_end = timezone.localtime(end_dt)
+
+        booked_slots.append({
+            'station_id': str(b.station_id).strip(),
+            'start': local_start.strftime('%I:%M %p'),
+            'end': local_end.strftime('%I:%M %p')
+        })
+
+    return JsonResponse({'booked_slots': booked_slots})

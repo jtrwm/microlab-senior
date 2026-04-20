@@ -1,33 +1,39 @@
 // Global State
-let selectedDate = new Date(); 
+//let selectedDate = new Date(); 
 let initialDate = new Date(); 
 let tempDate = new Date(initialDate);
 let tempTime = { h: '09', m: '00', ap: 'AM' }; 
 let currentPickerTarget = 'start';
 let currentCalendarYear = initialDate.getFullYear();
 let currentCalendarMonth = initialDate.getMonth() + 1;
-
+let globalBookedData = (typeof bookedData !== 'undefined') ? bookedData : [];
 
 document.addEventListener('DOMContentLoaded', () => {
     const selectStart = document.getElementById('selectStartTime');
     const selectEnd = document.getElementById('selectEndTime');
+    const stationIdInput = document.getElementById('inputStationId');
 
     if (selectStart) {
         selectStart.addEventListener('change', (e) => {
-            document.getElementById('inputStartTime').value = e.target.value; // อัปเดต Hidden Input
+            const selectedStartTime = e.target.value;
+            document.getElementById('inputStartTime').value = selectedStartTime; // อัปเดต Hidden Input
+            
+            const currentStationId = stationIdInput.value;
+            if (selectedStartTime && currentStationId) {
+                populateEndDropdownSecure('selectEndTime', currentStationId, selectedStartTime);
+            }
+
             validateForm(); // เรียกเช็คค่าเพื่อ Debug และเปิดปุ่ม
         });
     }
 
     if (selectEnd) {
         selectEnd.addEventListener('change', (e) => {
-            // --- จุดที่น่าจะพลาด: ต้องอัปเดตค่าเข้า Hidden Input ของ End ด้วย ---
-            document.getElementById('inputEndTime').value = e.target.value; 
+            document.getElementById('inputEndTime').value = e.target.value;
             validateForm(); // คราวนี้ DEBUG VALUES จะเห็นค่า End แล้วครับ
         });
     }
     
-    // ส่วนอื่นๆ ปล่อยไว้เหมือนเดิม
     renderTimeColumns();
     initDatePicker();
     validateForm();
@@ -145,25 +151,92 @@ function changeMonth(step) {
     renderCalendar();
 }
 
-function applyDate() {
+async function applyDate() {
     const selectedDate = new Date(tempDate);
     const options = { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' };
-    const displayDateStr = selectedDate.toLocaleDateString('en-GB', options);;
+    const displayDateStr = selectedDate.toLocaleDateString('en-GB', options);
     
     // Update Hidden Input (YYYY-MM-DD)
     const yyyy = selectedDate.getFullYear();
     const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const dd = String(selectedDate.getDate()).padStart(2, '0');
     const selectedDateStr = `${yyyy}-${mm}-${dd}`;
-    const selectedDateEnd = `${yyyy}-${mm}-${dd}`;
 
     if (currentPickerTarget === 'start') {
         document.getElementById('displayDateStart').innerText = displayDateStr; 
         document.getElementById('inputStartDate').value = selectedDateStr;
+
+        try {
+            const response = await fetch(`/api/get-booked-slots/?date=${selectedDateStr}`);
+            const data = await response.json();
+            
+            // 🚀 Quick Fix: เติม date_str เข้าไปในข้อมูลที่ดึงมา เพื่อให้ Dropdown มองเห็น
+            const slotsWithDate = data.booked_slots.map(slot => ({
+                ...slot,
+                date_str: selectedDateStr 
+            }));
+            
+            // อัปเดตข้อมูลการจองของวันเริ่ม
+            globalBookedData = slotsWithDate; 
+            
+            const currentStationId = document.getElementById('inputStationId').value;
+            if (currentStationId) {
+                document.getElementById('inputStartTime').value = "";
+                document.getElementById('inputEndTime').value = "";
+                populateDropdown('selectStartTime', currentStationId);
+                
+                // ถ้ารู้วันจบและเวลาเริ่มอยู่แล้ว ให้วาด Dropdown เวลาจบใหม่ด้วย
+                const startTimeValue = document.getElementById('selectStartTime').value;
+                if(startTimeValue) {
+                     populateEndDropdownSecure('selectEndTime', currentStationId, startTimeValue);
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching start date data:", err);
+        }
         
-    } else { // currentPickerTarget === 'end'
-        document.getElementById('displayDateEnd').innerText = displayDateStr; 
-        document.getElementById('inputEndDate').value = selectedDateEnd;
+    } else if (currentPickerTarget === 'end') {
+        console.log("Applying End Date:", selectedDateStr);
+        const displayEnd = document.getElementById('displayDateEnd');
+        const inputEnd = document.getElementById('inputEndDate');
+
+        if (displayEnd && inputEnd) {
+            displayEnd.innerText = displayDateStr; 
+            inputEnd.value = selectedDateStr;
+
+            const currentStationId = document.getElementById('inputStationId').value;
+            const startTimeValue = document.getElementById('selectStartTime').value;
+            
+            try {
+                // โหลดข้อมูลของวันจบมาเพิ่ม
+                const response = await fetch(`/api/get-booked-slots/?date=${selectedDateStr}`);
+                const data = await response.json();
+                
+                // 🚀 Quick Fix: เติม date_str เข้าไปในข้อมูลวันจบ
+                const slotsWithDate = data.booked_slots.map(slot => ({
+                    ...slot,
+                    date_str: selectedDateStr 
+                }));
+                
+                // เอาข้อมูลของ "วันจบ" มารวมกับของ "วันเริ่ม" (ป้องกันข้อมูลหายตอนจองข้ามวัน)
+                const startDateStr = document.getElementById('inputStartDate').value;
+                if (startDateStr !== selectedDateStr) {
+                    // ถ้าจองคนละวัน ให้เอาข้อมูลมาต่อกัน
+                    globalBookedData = [...globalBookedData, ...slotsWithDate];
+                } else {
+                    // ถ้าวันเดียวกัน ก็ใช้แค่ก้อนเดียวพอ
+                    globalBookedData = slotsWithDate;
+                }
+
+                if (currentStationId && startTimeValue) {
+                    populateEndDropdownSecure('selectEndTime', currentStationId, startTimeValue);
+                }
+            } catch (err) {
+                console.error("Error fetching end date data:", err);
+            }
+        } else {
+            console.error("หา Element displayDateEnd หรือ inputEndDate ไม่เจอ!");
+        }
     }
 
     document.getElementById('dateModal').style.display = 'none';
@@ -267,6 +340,7 @@ function applyTime() {
 }
 
 function populateDropdown(selectId, stationId) {
+    console.log("🚀 POPULATE DROPDOWN กำลังทำงาน! SelectID:", selectId);
     const selectEl = document.getElementById(selectId);
     if (!selectEl) return; 
     const hiddenInputId = selectId === 'selectStartTime' ? 'inputStartTime' : 'inputEndTime';
@@ -275,40 +349,117 @@ function populateDropdown(selectId, stationId) {
 
     selectEl.innerHTML = `<option value="">Select Time</option>`;
     
-    const stationBookings = (typeof bookedData !== 'undefined' && bookedData !== null) 
-        ? bookedData.filter(b => String(b.station_id).trim() === String(stationId).trim())
-        : [];
+    const startDate = document.getElementById('inputStartDate').value;
+    const stationBookings = globalBookedData.filter(b => 
+        String(b.station_id).trim() === String(stationId).trim() && 
+        (b.date_str === startDate || b.reservation_date === startDate) // เอาเฉพาะของวันเริ่ม
+    );
 
     for (let h = 6; h <= 22; h++) {
         for (let m of ['00', '30']) {
             let ampm = h >= 12 ? 'PM' : 'AM';
             let displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-            
             let timeStr = `${String(displayHour).padStart(2, '0')}:${m} ${ampm}`;
-            
-            // สร้าง Option ใหม่
+            //let currentMin = timeToMinutes(timeStr);
             let option = document.createElement('option');
             option.value = timeStr;
             option.text = timeStr;
 
-            // เช็คว่าชนกับคนอื่นไหม (ถ้ามีฟังก์ชัน timeToMinutes แล้ว)
             if (typeof timeToMinutes === 'function') {
                 let currentMin = timeToMinutes(timeStr);
+                
                 let isBooked = stationBookings.some(b => {
                     let start = timeToMinutes(b.start);
                     let end = timeToMinutes(b.end);
+                    // ทับซ้อนช่วงไหน ปิดช่วงนั้น
                     return currentMin >= start && currentMin < end;
                 });
                 
                 if (isBooked) {
                     option.disabled = true;
-                    option.text += " (Booked)";
-                    option.style.color = "#ccc"; 
-                    option.style.textDecoration = "line-through";
+                    // 🚀 เปลี่ยนเป็น Not Allowed ตามที่คุณต้องการ
+                    option.text += " (Not Allowed)";
+                    option.style.color = "#9e9e9e"; 
+                    option.style.backgroundColor = "#f5f5f5";
                 }
             }
-
             selectEl.appendChild(option);
+        }
+    }
+}
+
+function populateEndDropdownSecure(selectId, stationId, selectedStartTime) {
+    const selectEl = document.getElementById(selectId);
+    if (!selectEl) return;
+    
+    const startDate = document.getElementById('inputStartDate').value;
+    const endDate = document.getElementById('inputEndDate').value;
+    console.log("Check Comparison -> Start:", startDate, "End:", endDate);
+    const isSameDay = (startDate === endDate); 
+
+    selectEl.innerHTML = `<option value="">Select End Time</option>`;
+    
+    // ดึงคิวทั้งหมดของเครื่องนี้
+    const stationBookings = globalBookedData.filter(b => String(b.station_id).trim() === String(stationId).trim());
+    
+    const startDateTimeFull = new Date(`${startDate} ${selectedStartTime}`).getTime();
+    let blockPointTime = Infinity;
+
+    stationBookings.forEach(b => {
+        const bDateStr = String(b.date_str || b.reservation_date).trim();
+        const bStartFull = new Date(`${bDateStr} ${b.start}`).getTime();
+        
+        // ถ้าคิวนี้เริ่มหลังจากเวลาที่เราเลือก
+        if (bStartFull > startDateTimeFull) {
+            if (bStartFull < blockPointTime) {
+                blockPointTime = bStartFull; // จำคิวที่ใกล้ที่สุดไว้
+            }
+        }
+    });
+    //console.log("DEBUG: Station Bookings for this station:", stationBookings);
+    //console.log("DEBUG: Target End Date to check:", endDate);
+
+    for (let h = 6; h <= 22; h++) {
+        for (let m of ['00', '30']) {
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            let displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+            let timeStr = `${String(displayHour).padStart(2, '0')}:${m} ${ampm}`;
+
+            // เวลาของ Option นี้แบบ Full DateTime
+            let currentOptionFull = new Date(`${endDate} ${timeStr}`).getTime();
+            let currentMin = timeToMinutes(timeStr);
+            let startMin = timeToMinutes(selectedStartTime);
+
+            if (!isSameDay || currentMin > startMin) {
+                let option = document.createElement('option');
+                option.value = timeStr;
+                option.text = timeStr;
+
+                let isBookedInCurrentSlot = stationBookings.some(b => {
+                    const bDateStr = String(b.date_str || b.reservation_date).trim();
+                    if (bDateStr !== endDate) return false;
+                    const bStartMin = timeToMinutes(b.start);
+                    const bEndMin = timeToMinutes(b.end);
+                    return currentMin >= bStartMin && currentMin < bEndMin;
+                });
+
+                if (isBookedInCurrentSlot) {
+                    // แบบที่ 1: ช่วงเวลาที่มีคนกำลังใช้งานอยู่
+                    option.disabled = true;
+                    option.text += " (Not Allowed)";
+                    option.style.color = "#9e9e9e"; // สีเทา
+                    option.style.backgroundColor = "#f5f5f5";
+                } 
+                else if (currentOptionFull > blockPointTime) {
+                    // แบบที่ 2: เวลาหลังจากคิวที่มีคนจองดักไว้ (จองทะลุไม่ได้)
+                    option.disabled = true;
+                    option.text += " (โปรดเลือกช่วงเวลาเริ่มต้นใหม่)";
+                    option.style.color = "#d32f2f"; // สีแดง
+                    option.style.backgroundColor = "#ffebee";
+                }
+
+                selectEl.appendChild(option);
+            }
         }
     }
 }
@@ -331,31 +482,47 @@ function validateForm() {
         date_end: document.getElementById('inputEndDate').value,
         end: document.getElementById('selectEndTime').value
     });
+
     const stationId = document.getElementById('inputStationId').value;
-    //const allDay = document.getElementById('allDayToggle').checked;
     const dateStart = document.getElementById('inputStartDate').value;
     const startTime = document.getElementById('selectStartTime').value;
+    const endDate = document.getElementById('inputEndDate').value;
     const endTime = document.getElementById('selectEndTime').value;
     const btn = document.getElementById('confirmBtn');
+    const endDateVal = document.getElementById('inputEndDate').value;
+    //console.log("Form is about to submit with End Date:", endDateVal);
 
     // 2. ตรวจสอบความครบถ้วน
     // ต้องมี Station, วันที่, เวลาเริ่ม และเวลาจบ
-    if (stationId && dateStart && startTime && endTime) {
-        const startMin = timeToMinutes(startTime);
-        const endMin = timeToMinutes(endTime);
+    if (stationId && dateStart && startTime && endDate && endTime) {
+        const startFull = new Date(`${dateStart} ${startTime}`);
+        const endFull = new Date(`${endDate} ${endTime}`);
 
-        // เงื่อนไข: เวลาเริ่มต้องน้อยกว่าเวลาจบ
-        if (startMin < endMin) {
+        if (endFull > startFull) {
             btn.disabled = false;
-            btn.style.opacity = "1"; // แถม: ให้ปุ่มดูชัดขึ้น
+            btn.style.opacity = "1";
+            //console.log("Validation Passed: ข้ามวันได้เพราะ DateTime มากกว่า");
         } else {
             btn.disabled = true;
             btn.style.opacity = "0.5";
+            //console.log("Validation Failed: เวลาจบต้องมาหลังเวลาเริ่ม");
         }
     } else {
         btn.disabled = true;
         btn.style.opacity = "0.5";
     }
+}
+
+function confirmBooking() {
+    // 🚀 ดักดึงวันที่จาก Text ที่โชว์อยู่บนจอ (Display) มาใส่ใน Input ก่อนส่ง
+    const displayDateEndText = document.getElementById('displayDateEnd').innerText;
+    // (สมมติว่าคุณมีฟังก์ชันแปลงวันที่ หรือแค่อยากเช็คค่าล่าสุด)
+    
+    const inputEnd = document.getElementById('inputEndDate');
+    console.log("Final check before sending to Python:", inputEnd.value);
+
+    // บรรทัดนี้จะสั่งส่งฟอร์มไปที่ views.py
+    document.getElementById('bookingForm').submit(); 
 }
 
 document.addEventListener('DOMContentLoaded', () => {

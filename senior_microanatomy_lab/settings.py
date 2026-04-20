@@ -81,7 +81,7 @@ DATABASES = {
         'USER': 'postgres.sqastdkrowpwfactzncc', 
         'PASSWORD': 'thereasonwhywedonthavetimetosleep', 
         'HOST': 'aws-1-ap-northeast-1.pooler.supabase.com', 
-        'PORT': '6543', 
+        'PORT': '5432', 
         'OPTIONS': {
             'sslmode': 'require',
         }

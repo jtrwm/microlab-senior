@@ -6,8 +6,6 @@
     console.log("Booked Data Loaded:", bookedData); // ลองเปิด F12 เช็คดูว่ามีข้อมูลไหม
 </script>
 
-<script src="{% static 'js/booking_logic.js' %}"></script>
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -38,7 +36,7 @@
             <input type="hidden" name="selected_station_id" id="inputStationId">
             <input type="hidden" name="start_date" id="inputStartDate" value="{{ default_date_value }}"> 
             <input type="hidden" name="start_time" id="inputStartTime" value="09:00 AM"> 
-            <input type="hidden" name="end_date" id="inputEndDate" value="{{ default_date_value }}"> 
+            <input type="hidden" name="end_date" id="inputEndDate" value="">
             <input type="hidden" name="end_time" id="inputEndTime" value="10:00 AM">
             <input type="hidden" name="is_all_day" id="inputAllDay" value="true">
 
@@ -76,7 +74,8 @@
                 </div>
 
                 <div class="booked-slot slot-active" id="dateSlotStartBtn">
-                    <span id="displayDateStart">{{ selected_date }}</span> <span class="icon">📅</span>
+                    <span id="displayDateStart">{{ selected_date }}</span> 
+                    <span class="icon">📅</span>
                 </div>
 
                 <div class="booked-slot slot-active">
@@ -90,8 +89,6 @@
                     <span id="displayDateEnd">{{ default_date_display }}</span>
                     <span class="icon">📅</span>
                 </div>
-                <input type="date" id="displayDateEnd" name="end_date" value="{{ selected_date }}" style="display: none;">
-                
 
                 <div class="booked-slot slot-active">
                     <span class="icon">⏰</span>
@@ -144,7 +141,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/booking_logic.js' %}"></script>
+    <script src="{% static 'js/booking_logic.js' %}?v=1"></script>
 </body>
 
 </html>
