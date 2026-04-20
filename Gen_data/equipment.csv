@@ -1,0 +1,11 @@
+equip_id,equip_name,status
+E001,Microscope_1,Maintenance
+E002,Microscope_2,Available
+E003,Microscope_3,Maintenance
+E004,Microscope_4,Available
+E005,Microscope_5,In Use
+E006,Microscope_6,Maintenance
+E007,Microscope_7,In Use
+E008,Microscope_8,Maintenance
+E009,Microscope_9,In Use
+E010,Microscope_10,In Use
