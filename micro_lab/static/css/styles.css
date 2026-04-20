@@ -113,24 +113,47 @@ body {
 }
 
 .day-cell {
-    padding: 10px;
     border: 1px solid #eee;
     background-color: white;
     cursor: pointer;
+    min-height: 80px; /* ขยายให้สูงพอแสดงรายการจอง */
+    padding: 5px;
+    font-size: 0.85rem;
 }
 
 .day-cell.booked {
-    background-color: #fdd; 
-    color: red;
     text-align: right;
 }
 
 .day-cell.available {
-    background-color: white; /* สีฟ้า สำหรับวันว่าง */
+    background-color: white; 
     color: gray;
     text-align: right;
+} 
+  
+.booking-tag {
+    background: #e3f2fd; /* สีฟ้าอ่อน */
+    color: #0d47a1;     /* ตัวอักษรน้ำเงินเข้ม */
+    padding: 2px 4px;
+    margin-top: 3px;
+    border-radius: 4px;
+    font-size: 10px;    /* ตัวอักษรจิ๋วเพื่อให้ไม่ล้น */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-
+.nav-btn {
+    text-decoration: none;
+    padding: 5px 15px;
+    background: #f0f0f0;
+    color: black;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    display: inline-block;
+}
+.nav-btn:hover {
+    background: #e0e0e0;
+}
 .navbar {
     height: 60px;
     display: flex;
