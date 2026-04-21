@@ -13,6 +13,8 @@ import datetime
 from django.utils import timezone
 from datetime import date
 from .models import Booking
+from django.contrib.auth.decorators import login_required 
+from .forms import RegisterForm
 
 def get_processed_stations(selected_pk=None):
     """
@@ -140,9 +142,8 @@ def home_view(request):
     # ถ้าเป็นการเข้าหน้าเว็บปกติ ให้ส่งหน้าเต็มไป
     return render(request, 'micro_lab/home.html', context)
 
-
-
 @require_http_methods(["GET", "POST"])
+@login_required
 def booking_view(request):
     selected_date_str = request.GET.get('date') 
     if selected_date_str:
@@ -383,6 +384,7 @@ def api_get_booked_slots(request):
 
     return JsonResponse({'booked_slots': booked_slots})
 
+@login_required
 def booking_complete(request, booking_id):
     try:
         booking = Booking.objects.get(booking_id=booking_id)
@@ -393,3 +395,16 @@ def booking_complete(request, booking_id):
         return render(request, 'micro_lab/booking_complete.html', {'booking': booking_obj})
     except (Booking.DoesNotExist, Station.DoesNotExist):
         return render(request, 'micro_lab/404.html')
+    
+def register(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            form.save() # บันทึก User ลงฐานข้อมูล
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}! You can now login.')
+            return redirect('login') # สมัครเสร็จให้เด้งไปหน้า Login
+    else:
+        form = RegisterForm()
+    return render(request, 'micro_lab/register.html', {'form': form})
+

@@ -1,0 +1,56 @@
+{% extends "micro_lab/base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    .login-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 40px;
+        background-color: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .login-container h2 {
+        margin-bottom: 30px;
+        color: #333;
+    }
+    .login-container input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+    .btn-login {
+        width: 100%;
+        padding: 15px;
+        background-color: #4a4a4a; /* สีฟ้าเข้มให้เข้ากับธีมแล็บ */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .btn-login:hover {
+        background-color: #2c2c2c;
+    }
+</style>
+
+<div class="login-container">
+    <h2>Microanatomy Laboratory</h2>
+    
+    <form method="POST">
+        {% csrf_token %}
+        
+        {{ form.as_p }}
+        
+        <button type="submit" class="btn-login">Login</button>
+    </form>
+    <p style="margin-top:20px;">
+        Don't have an account? <a href="{% url 'register' %}">Register here</a>
+    </p>
+</div>
+{% endblock %}

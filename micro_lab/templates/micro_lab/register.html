@@ -1,0 +1,37 @@
+{% extends "micro_lab/base.html" %}
+
+{% block content %}
+<style>
+    .register-container {
+        max-width: 450px;
+        margin: 80px auto;
+        padding: 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .btn-register {
+        width: 100%;
+        padding: 12px;
+        background-color: #28a745; /* สีเขียวให้ดูแตกต่างจาก Login */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+</style>
+
+<div class="register-container">
+    <h2 style="text-align:center;">Create Account</h2>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-register">Sign Up</button>
+    </form>
+    <p style="text-align:center; margin-top:20px;">
+        Already have an account? <a href="{% url 'login' %}">Login here</a>
+    </p>
+</div>
+{% endblock %}
