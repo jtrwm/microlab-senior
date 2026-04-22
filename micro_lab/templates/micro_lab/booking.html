@@ -1,5 +1,7 @@
+{% extends "micro_lab/base.html" %}
 {% load static %}
 
+{% block content %}
 <script>
     // รับก้อนข้อมูลจาก Django
     const bookedData = {{ booked_slots_json|safe }};
@@ -131,3 +133,4 @@
 </body>
 
 </html>
+{% endblock content %}

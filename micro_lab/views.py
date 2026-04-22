@@ -9,12 +9,10 @@ from django.contrib import messages
 import uuid
 import json
 from django.http import JsonResponse
-import datetime
-from django.utils import timezone
 from datetime import date
-from .models import Booking
 from django.contrib.auth.decorators import login_required 
 from .forms import RegisterForm
+from django.core.paginator import Paginator
 
 def get_processed_stations(selected_pk=None):
     """
@@ -414,6 +412,23 @@ def all_slides_view(request):
     return render(request, 'micro_lab/all_slides.html', {'slides': slides})
 
 def all_slides_view(request):
-    # ดึงข้อมูล Slide พร้อมข้อมูลจากตาราง Image ที่เชื่อมกันอยู่
-    slides = Slide.objects.prefetch_related('images').all()
-    return render(request, 'micro_lab/all_slides.html', {'slides': slides})
+    slide_list = Slide.objects.prefetch_related('images').all()
+    per_page = request.GET.get('per_page', 10)
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 10
+    paginator = Paginator(slide_list, per_page)
+    page_number = request.GET.get('page')
+    slides = paginator.get_page(page_number)
+    total_results = paginator.count
+    start_index = slides.start_index()
+    end_index = slides.end_index()
+    context = {
+        'slides': slides,
+        'per_page': per_page,
+        'total_results': total_results,
+        'start_index': start_index,
+        'end_index': end_index,
+    }
+    return render(request, 'micro_lab/all_slides.html', context)
