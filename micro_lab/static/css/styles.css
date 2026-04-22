@@ -132,8 +132,8 @@ body {
 } 
   
 .booking-tag {
-    background: #e3f2fd; /* สีฟ้าอ่อน */
-    color: #0d47a1;     /* ตัวอักษรน้ำเงินเข้ม */
+    background: #fde3e3; 
+    color: #6e0a0a;  
     padding: 2px 4px;
     margin-top: 3px;
     border-radius: 4px;

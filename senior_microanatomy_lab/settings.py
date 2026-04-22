@@ -15,7 +15,6 @@ from pathlib import Path
 
 LOGIN_REDIRECT_URL = '/' 
 LOGOUT_REDIRECT_URL = '/login/'
-LOGIN_URL = '/login/'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,14 +80,11 @@ WSGI_APPLICATION = "senior_microanatomy_lab.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres', 
+        'NAME': 'postgres',
         'USER': 'postgres.sqastdkrowpwfactzncc', 
         'PASSWORD': 'thereasonwhywedonthavetimetosleep', 
         'HOST': 'aws-1-ap-northeast-1.pooler.supabase.com', 
-        'PORT': '5432', 
-        'OPTIONS': {
-            'sslmode': 'require',
-        }
+        'PORT': '6543',
     }
 }
 

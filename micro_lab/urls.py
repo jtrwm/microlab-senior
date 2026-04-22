@@ -11,4 +11,5 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('register/', views.register, name='register'),
     path('all-slides/', views.all_slides_view, name='all_slides'),
+    path('api/calendar-events/', views.calendar_events, name='calendar_events'),
 ]

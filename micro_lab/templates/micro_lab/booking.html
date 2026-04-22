@@ -3,7 +3,6 @@
 
 {% block content %}
 <script>
-    // รับก้อนข้อมูลจาก Django
     const bookedData = {{ booked_slots_json|safe }};
     console.log("Booked Data Loaded:", bookedData); 
 </script>
