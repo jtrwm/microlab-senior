@@ -442,69 +442,59 @@ def calendar_events(request):
     bookings = Booking.objects.filter(booking_status='CONFIRMED')
     events = []
     
-    # กำหนดสีประจำสถานี (รองรับทั้ง int และ str)
     STATION_COLORS = {
         '1': {'bg': '#E3F2FD', 'text': '#1976D2', 'border': '#2196F3'},
-        1:   {'bg': '#E3F2FD', 'text': '#1976D2', 'border': '#2196F3'},
         '2': {'bg': '#F3E5F5', 'text': '#7B1FA2', 'border': '#9C27B0'},
-        2:   {'bg': '#F3E5F5', 'text': '#7B1FA2', 'border': '#9C27B0'},
         '3': {'bg': '#E8F5E9', 'text': '#2E7D32', 'border': '#4CAF50'},
-        3:   {'bg': '#E8F5E9', 'text': '#2E7D32', 'border': '#4CAF50'},
         '4': {'bg': '#FFF3E0', 'text': '#E65100', 'border': '#FF9800'},
         '5': {'bg': '#FCE4EC', 'text': '#C2185B', 'border': '#E91E63'},
         '6': {'bg': '#E0F7FA', 'text': '#00796B', 'border': '#00BCD4'},
-        6:   {'bg': '#E0F7FA', 'text': '#00796B', 'border': '#00BCD4'},
     }
 
     for b in bookings:
-        # 1. จัดการ ID และดึงสีแค่ "ครั้งเดียว" ให้จบ
+        # 1. จัดการ ID และดึงสี (ตัดช่องว่างทิ้ง)
         s_id = str(b.station_id).strip()
         colors = STATION_COLORS.get(s_id, {'bg': '#F5F5F5', 'text': '#616161', 'border': '#9E9E9E'})
         
-        # 2. จัดการเรื่องเวลา
+        # 2. จัดการเรื่องเวลา (Aware Datetime)
         start_dt = b.daystart
         end_dt = b.dayend
-        
-        if timezone.is_naive(start_dt):
-            start_dt = timezone.make_aware(start_dt, datetime.timezone.utc)
-        if timezone.is_naive(end_dt):
-            end_dt = timezone.make_aware(end_dt, datetime.timezone.utc)
-            
+        if timezone.is_naive(start_dt): start_dt = timezone.make_aware(start_dt, datetime.timezone.utc)
+        if timezone.is_naive(end_dt): end_dt = timezone.make_aware(end_dt, datetime.timezone.utc)
         start_dt = timezone.localtime(start_dt)
         end_dt = timezone.localtime(end_dt)
         
-        # 3. เตรียมข้อมูล
-        unique_group_id = f"{b.booking_id}-{s_id}"
+        # 3. เตรียมฟอร์แมตเวลา (เช่น 2:00pm)
+        start_time_str = start_dt.strftime('%I:%M%p').lstrip('0').lower()
+        end_time_str = end_dt.strftime('%I:%M%p').lstrip('0').lower()
         
         common_data = {
             'groupId': f"{b.booking_id}-{s_id}",
             'order': int(s_id) if s_id.isdigit() else 99,
-            # 🚀 ส่งค่าสีไปในตัวแปรมาตรฐานของ FullCalendar
-            'color': colors['bg'],           # สีพื้นหลัง
-            'textColor': colors['text'],     # สีตัวอักษร
-            'borderColor': colors['border'], # สีขอบ
+            'backgroundColor': colors['bg'],  
+            'textColor': colors['text'],      
+            'borderColor': colors['border'],  
         }
 
         delta_days = (end_dt.date() - start_dt.date()).days
 
         if delta_days == 0:
+            # จองวันเดียว: St.6: 2:00pm - 4:00pm
             events.append({
                 **common_data,
-                'title': f"St.{s_id}: Booked",
+                'title': f"St.{s_id}: {start_time_str} - {end_time_str}",
                 'start': start_dt.isoformat(),
                 'end': end_dt.isoformat(),
-                'allDay': False,
             })
         else:
-            # วันเริ่ม
+            # วันเริ่ม: St.6: Start 2:00pm -
             events.append({
                 **common_data,
-                'title': f"St.{s_id}: Start",
+                'title': f"St.{s_id}: Start {start_time_str} -",
                 'start': start_dt.isoformat(),
                 'end': start_dt.replace(hour=23, minute=59).isoformat(),
-                'allDay': False,
             })
-            # วันกลาง (Fully Booked)
+            # วันกลาง
             curr = start_dt.date() + timedelta(days=1)
             while curr < end_dt.date():
                 events.append({
@@ -514,13 +504,12 @@ def calendar_events(request):
                     'allDay': True,
                 })
                 curr += timedelta(days=1)
-            # วันจบ
+            # วันจบ: St.6: Ends 12:00am
             events.append({
                 **common_data,
-                'title': f"St.{s_id}: Ends",
+                'title': f"St.{s_id}: Ends {end_time_str}",
                 'start': end_dt.replace(hour=0, minute=0).isoformat(),
                 'end': end_dt.isoformat(),
-                'allDay': False,
             })
             
     return JsonResponse(events, safe=False)

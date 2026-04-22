@@ -8,36 +8,35 @@
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 events: '/api/calendar-events/',
-                eventDisplay: 'block', // 🚀 ต้องมีบรรทัดนี้เพื่อให้แสดงเป็นแถบสี
+                eventDisplay: 'block',
                 eventOrder: 'order',
-                
-                eventTimeFormat: {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    meridiem: 'short',
-                    hour12: true
-                },
-                
-                eventDidMount: function(info) {
-        // ดึงสีที่ส่งมาจาก common_data ใน views.py
-        var bgColor = info.event.backgroundColor || info.event.extendedProps.color;
-        var txtColor = info.event.textColor;
-        var bdColor = info.event.borderColor;
+                displayEventTime: false, 
 
-        if (bgColor) {
-            // บังคับเปลี่ยนสีที่ตัว Element โดยตรง (Inline Style)
-            info.el.style.setProperty('background-color', bgColor, 'important');
-            info.el.style.setProperty('border-color', bdColor || bgColor, 'important');
-            info.el.style.setProperty('color', txtColor || '#000000', 'important');
-            
-            // เพิ่มเส้นขอบหนาด้านซ้ายเพื่อให้ดูเหมือนในรูปที่คุณต้องการ
-            info.el.style.setProperty('border-left', '5px solid ' + (bdColor || bgColor), 'important');
-        }
-        
-        info.el.style.borderRadius = '4px';
-        info.el.style.marginBottom = '2px';
-    }
-});
+                // 🚀 วิธีที่ง่ายที่สุดในการทำตัวหนาเฉพาะส่วนหัว
+                eventContent: function(arg) {
+                    let title = arg.event.title;
+                    // ใช้การ replace เพื่อครอบ <b> เฉพาะส่วนที่เป็น St.X:
+                    let html = title.replace(/^(St\.\d+:)/, '<b>$1</b>');
+                    
+                    return { html: html };
+                },
+
+                eventDidMount: function(info) {
+                    // ส่วนนี้เก็บไว้จัดการแค่เรื่องสีและขอบให้สวยงามเหมือนเดิม
+                    var bgColor = info.event.backgroundColor;
+                    var txtColor = info.event.textColor;
+                    var bdColor = info.event.borderColor;
+
+                    if (bgColor) {
+                        info.el.style.setProperty('background-color', bgColor, 'important');
+                        info.el.style.setProperty('color', txtColor, 'important');
+                        info.el.style.setProperty('border-left', '5px solid ' + (bdColor || bgColor), 'important');
+                    }
+                    info.el.style.borderRadius = '4px';
+                    info.el.style.marginBottom = '2px';
+                    info.el.style.fontSize = '0.85em';
+                }
+            });
             calendar.render();
         }
     });
