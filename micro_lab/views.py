@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import transaction
-from .models import Station, Booking, User
+from .models import Station, Booking, User, Slide
 from django.utils import timezone
 import datetime
 import calendar
@@ -408,3 +408,12 @@ def register(request):
         form = RegisterForm()
     return render(request, 'micro_lab/register.html', {'form': form})
 
+def all_slides_view(request):
+    # ดึงข้อมูลทั้งหมดจากตาราง slides ใน Supabase
+    slides = Slide.objects.all() 
+    return render(request, 'micro_lab/all_slides.html', {'slides': slides})
+
+def all_slides_view(request):
+    # ดึงข้อมูล Slide พร้อมข้อมูลจากตาราง Image ที่เชื่อมกันอยู่
+    slides = Slide.objects.prefetch_related('images').all()
+    return render(request, 'micro_lab/all_slides.html', {'slides': slides})

@@ -10,4 +10,5 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='micro_lab/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('register/', views.register, name='register'),
+    path('all-slides/', views.all_slides_view, name='all_slides'),
 ]

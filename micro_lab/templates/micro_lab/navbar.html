@@ -2,7 +2,7 @@
     <nav class="nav-links">
         <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
         <a href="{% url 'booking' %}" class="{% if request.resolver_match.url_name == 'booking' %}active{% endif %}">Booking</a>
-        <a href="#">#</a>
+        <a href="{% url 'all_slides' %}" class="{% if request.resolver_match.url_name == 'all_slides' %}active{% endif %}">Slides</a>
     </nav>
     <div class="profile-section">
         {% if user.is_authenticated %}

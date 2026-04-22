@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.conf import settings
 User = get_user_model() # จะชี้ไปที่ auth_user
 
 # --- 1. โมเดลสถานี (ใช้ตาราง 'station' เดิม) ---
@@ -43,3 +44,27 @@ class Booking(models.Model):
     class Meta:
         db_table = 'booking'
         managed = False
+        
+class Slide(models.Model):
+    slide_id = models.CharField(primary_key=True, max_length=50, db_column='slide_id')
+    sample_code = models.CharField(max_length=100, db_column='sample_code')
+    tissue_type = models.CharField(max_length=100, db_column='tissue_type')
+    stain_type = models.CharField(max_length=100, db_column='stain_type')
+    location = models.CharField(max_length=100, db_column='loction') # ⚠️ สะกดตาม DB จริงของคุณ
+
+    class Meta:
+        db_table = 'slide' # ชื่อตารางใน Supabase
+        managed = False  
+        
+class SlideImage(models.Model):
+    iimage_id = models.AutoField(primary_key=True, db_column='image_id')
+    slide = models.ForeignKey(Slide, on_delete=models.DO_NOTHING, db_column='slide_id', related_name='images')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, db_column='user_id')
+    recorddate = models.DateTimeField(auto_now_add=True, db_column='recorddate')
+    image_url = models.TextField(db_column='image_url') # คอลัมน์ที่เพิ่มใหม่
+    magnification = models.CharField(max_length=50, db_column='magnification')
+
+    class Meta:
+        db_table = 'image' # ชื่อตารางรูปภาพใน Supabase
+        managed = False
+        
