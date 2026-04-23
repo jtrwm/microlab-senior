@@ -1,11 +1,8 @@
 {% extends "micro_lab/base.html" %}
 {% load static %}
+<link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/png">
 
 {% block content %}
-    <style>
-        
-    </style>
-     
     <div class="header-section">
         <div class="hero-image-container">
             <img src="{% static 'images/lab_hero.jpg' %}" alt="Microscopy Lab" class="hero-image">
@@ -43,36 +40,11 @@
             {% endfor %}
         </div>
 
-        <hr>
-
-        <h2 class="section-title">Station Available This Month</h2>
+    <hr>
+    <h2 class="section-title">Station Available This Month</h2>
         
-        <div id="calendar-wrapper">
-            {% include 'micro_lab/calendar_partial.html' %}
-        </div>
-
-        <script>
-        async function loadMonth(year, month) {
-            const url = `/?year=${year}&month=${month}`;
-            
-            try {
-                // ส่ง Request ไปยัง Django พร้อม Header พิเศษเพื่อบอกว่าเป็น AJAX
-                const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.ok) {
-                    const html = await response.text();
-                    // อัปเดตเฉพาะส่วนปฏิทินโดยไม่รีโหลดหน้า
-                    document.getElementById('calendar-wrapper').innerHTML = html;
-                }
-            } catch (error) {
-                console.error('Error loading calendar:', error);
-            }
-        }
-        </script>
-
+    <div id="calendar-wrapper">
+        {% include 'micro_lab/calendar_partial.html' %}
+    </div>
 
 {% endblock content %}

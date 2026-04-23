@@ -1,39 +1,43 @@
-<div class="calendar-header">
-    <h3>{{ current_month }}</h3> 
-    <div class="calendar-nav">
-        <a href="javascript:void(0);" onclick="loadMonth('{{ prev_year }}', '{{ prev_month }}')" class="nav-btn">&lt;</a>
-        <a href="javascript:void(0);" onclick="loadMonth('{{ next_year }}', '{{ next_month }}')" class="nav-btn">&gt;</a>
-    </div>
-</div>
+<div id="calendar"></div>
 
-<div class="calendar-grid">
-            <div class="day-header">Sun</div>
-            <div class="day-header">Mon</div>
-            <div class="day-header">Tue</div>
-            <div class="day-header">Wed</div>
-            <div class="day-header">Thu</div>
-            <div class="day-header">Fri</div>
-            <div class="day-header">Sat</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        
+        if (calendarEl) {
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: '/api/calendar-events/',
+                eventDisplay: 'block',
+                eventOrder: 'order',
+                displayEventTime: false, 
 
-            {% for week in calendar_data %}
-                {% for day_data in week %}
-                    {% if day_data.status == 'empty' %}
-                        <div class="day-cell empty"></div>
-                    {% else %}
-                        <div class="day-cell {{ day_data.status }}">
-                            <div class="day-number">{{ day_data.day }}</div>
-                            
-                            <div class="daily-booking-list">
-                                {% for b in day_data.bookings %}
-                                    <div class="booking-tag">
-                                        <strong>St.{{ b.station_id }}</strong> {{ b.time_range }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-        </div>
+                // 🚀 วิธีที่ง่ายที่สุดในการทำตัวหนาเฉพาะส่วนหัว
+                eventContent: function(arg) {
+                    let title = arg.event.title;
+                    // ใช้การ replace เพื่อครอบ <b> เฉพาะส่วนที่เป็น St.X:
+                    let html = title.replace(/^(St\.\d+:)/, '<b>$1</b>');
+                    
+                    return { html: html };
+                },
 
-    </div>
+                eventDidMount: function(info) {
+                    // ส่วนนี้เก็บไว้จัดการแค่เรื่องสีและขอบให้สวยงามเหมือนเดิม
+                    var bgColor = info.event.backgroundColor;
+                    var txtColor = info.event.textColor;
+                    var bdColor = info.event.borderColor;
+
+                    if (bgColor) {
+                        info.el.style.setProperty('background-color', bgColor, 'important');
+                        info.el.style.setProperty('color', txtColor, 'important');
+                        info.el.style.setProperty('border-left', '5px solid ' + (bdColor || bgColor), 'important');
+                    }
+                    info.el.style.borderRadius = '4px';
+                    info.el.style.marginBottom = '2px';
+                    info.el.style.fontSize = '0.85em';
+                }
+            });
+            calendar.render();
+        }
+    });
+</script>

@@ -9,7 +9,7 @@ from django.contrib import messages
 import uuid
 import json
 from django.http import JsonResponse
-from datetime import date
+from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required 
 from .forms import RegisterForm
 from django.core.paginator import Paginator
@@ -407,17 +407,18 @@ def register(request):
     return render(request, 'micro_lab/register.html', {'form': form})
 
 def all_slides_view(request):
-    # ดึงข้อมูลทั้งหมดจากตาราง slides ใน Supabase
-    slides = Slide.objects.all() 
-    return render(request, 'micro_lab/all_slides.html', {'slides': slides})
-
-def all_slides_view(request):
     slide_list = Slide.objects.prefetch_related('images').all()
     per_page = request.GET.get('per_page', 10)
     try:
         per_page = int(per_page)
     except ValueError:
         per_page = 10
+    selected_category = request.GET.get('category', '')
+    slides_query = Slide.objects.prefetch_related('images').all()
+    if selected_category:
+        slides_query = slides_query.filter(tissue_type=selected_category)
+    categories = Slide.objects.values_list('tissue_type', flat=True).distinct()
+    
     paginator = Paginator(slide_list, per_page)
     page_number = request.GET.get('page')
     slides = paginator.get_page(page_number)
@@ -426,9 +427,89 @@ def all_slides_view(request):
     end_index = slides.end_index()
     context = {
         'slides': slides,
-        'per_page': per_page,
-        'total_results': total_results,
-        'start_index': start_index,
-        'end_index': end_index,
+        'categories': categories,
+        'selected_category': selected_category,
+        'per_page': int(per_page),
+        'total_results': paginator.count,
+        'start_index': slides.start_index() if slides else 0,
+        'end_index': slides.end_index() if slides else 0,
     }
     return render(request, 'micro_lab/all_slides.html', context)
+
+# micro_lab/views.py
+
+def calendar_events(request):
+    bookings = Booking.objects.filter(booking_status='CONFIRMED')
+    events = []
+    
+    STATION_COLORS = {
+        '1': {'bg': '#E3F2FD', 'text': '#1976D2', 'border': '#2196F3'},
+        '2': {'bg': '#F3E5F5', 'text': '#7B1FA2', 'border': '#9C27B0'},
+        '3': {'bg': '#E8F5E9', 'text': '#2E7D32', 'border': '#4CAF50'},
+        '4': {'bg': '#FFF3E0', 'text': '#E65100', 'border': '#FF9800'},
+        '5': {'bg': '#FCE4EC', 'text': '#C2185B', 'border': '#E91E63'},
+        '6': {'bg': '#E0F7FA', 'text': '#00796B', 'border': '#00BCD4'},
+    }
+
+    for b in bookings:
+        # 1. จัดการ ID และดึงสี (ตัดช่องว่างทิ้ง)
+        s_id = str(b.station_id).strip()
+        colors = STATION_COLORS.get(s_id, {'bg': '#F5F5F5', 'text': '#616161', 'border': '#9E9E9E'})
+        
+        # 2. จัดการเรื่องเวลา (Aware Datetime)
+        start_dt = b.daystart
+        end_dt = b.dayend
+        if timezone.is_naive(start_dt): start_dt = timezone.make_aware(start_dt, datetime.timezone.utc)
+        if timezone.is_naive(end_dt): end_dt = timezone.make_aware(end_dt, datetime.timezone.utc)
+        start_dt = timezone.localtime(start_dt)
+        end_dt = timezone.localtime(end_dt)
+        
+        # 3. เตรียมฟอร์แมตเวลา (เช่น 2:00pm)
+        start_time_str = start_dt.strftime('%I:%M%p').lstrip('0').lower()
+        end_time_str = end_dt.strftime('%I:%M%p').lstrip('0').lower()
+        
+        common_data = {
+            'groupId': f"{b.booking_id}-{s_id}",
+            'order': int(s_id) if s_id.isdigit() else 99,
+            'backgroundColor': colors['bg'],  
+            'textColor': colors['text'],      
+            'borderColor': colors['border'],  
+        }
+
+        delta_days = (end_dt.date() - start_dt.date()).days
+
+        if delta_days == 0:
+            # จองวันเดียว: St.6: 2:00pm - 4:00pm
+            events.append({
+                **common_data,
+                'title': f"St.{s_id}: {start_time_str} - {end_time_str}",
+                'start': start_dt.isoformat(),
+                'end': end_dt.isoformat(),
+            })
+        else:
+            # วันเริ่ม: St.6: Start 2:00pm -
+            events.append({
+                **common_data,
+                'title': f"St.{s_id}: Start {start_time_str} -",
+                'start': start_dt.isoformat(),
+                'end': start_dt.replace(hour=23, minute=59).isoformat(),
+            })
+            # วันกลาง
+            curr = start_dt.date() + timedelta(days=1)
+            while curr < end_dt.date():
+                events.append({
+                    **common_data,
+                    'title': f"St.{s_id}: Fully Booked",
+                    'start': curr.isoformat(),
+                    'allDay': True,
+                })
+                curr += timedelta(days=1)
+            # วันจบ: St.6: Ends 12:00am
+            events.append({
+                **common_data,
+                'title': f"St.{s_id}: Ends {end_time_str}",
+                'start': end_dt.replace(hour=0, minute=0).isoformat(),
+                'end': end_dt.isoformat(),
+            })
+            
+    return JsonResponse(events, safe=False)
