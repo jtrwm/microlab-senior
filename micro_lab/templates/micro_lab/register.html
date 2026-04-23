@@ -2,36 +2,222 @@
 
 {% block content %}
 <style>
-    .register-container {
-        max-width: 450px;
-        margin: 80px auto;
-        padding: 40px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    .register-page {
+        min-height: calc(100vh - 80px);
+        padding: 40px 20px;
+        background: #f7f8fc;
     }
+
+    .register-card {
+        max-width: 760px;
+        margin: 30px auto;
+        padding: 40px;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e7eaf0;
+    }
+
+    .register-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .register-breadcrumb {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #7a7f8c;
+    }
+
+    .register-title {
+        margin: 0;
+        font-size: 42px;
+        font-weight: 700;
+        color: #1f2430;
+        line-height: 1.15;
+    }
+
+    .register-subtitle {
+        margin: 12px auto 0;
+        max-width: 560px;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #5f6675;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 22px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        margin-bottom: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #1f2430;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #d7dce5;
+        border-radius: 12px;
+        font-size: 15px;
+        color: #1f2430;
+        background: #fff;
+        transition: 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .help-text,
+    .helptext {
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #6b7280;
+    }
+
+    .helptext ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+    }
+
+    .errorlist {
+        margin: 8px 0 0 0;
+        padding: 10px 12px;
+        list-style: none;
+        border-radius: 12px;
+        background: #fef2f2;
+        color: #b91c1c;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .non-field-errors {
+        margin-bottom: 20px;
+    }
+
     .btn-register {
         width: 100%;
-        padding: 12px;
-        background-color: #28a745; /* สีเขียวให้ดูแตกต่างจาก Login */
-        color: white;
+        margin-top: 28px;
+        padding: 14px 18px;
+        background: #22c55e;
+        color: #fff;
         border: none;
-        border-radius: 8px;
-        font-size: 16px;
+        border-radius: 14px;
+        font-size: 17px;
+        font-weight: 600;
         cursor: pointer;
-        margin-top: 20px;
+        transition: 0.2s ease;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+    }
+
+    .btn-register:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+    }
+
+    .register-footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 15px;
+        color: #5f6675;
+    }
+
+    .register-footer a {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .register-footer a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        .register-card {
+            padding: 28px 20px;
+            border-radius: 18px;
+        }
+
+        .register-title {
+            font-size: 34px;
+        }
     }
 </style>
 
-<div class="register-container">
-    <h2 style="text-align:center;">Create Account</h2>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn-register">Sign Up</button>
-    </form>
-    <p style="text-align:center; margin-top:20px;">
-        Already have an account? <a href="{% url 'login' %}">Login here</a>
-    </p>
+<div class="register-page">
+    <div class="register-card">
+        <div class="register-header">
+            <p class="register-breadcrumb">Account / Registration</p>
+            <h1 class="register-title">Create Account</h1>
+            <p class="register-subtitle">
+                Create your laboratory account to access slide records, booking features, and dashboard services.
+            </p>
+        </div>
+
+        <form method="POST" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="non-field-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}{{ form.username.errors }}{% endif %}
+                    {% if form.username.help_text %}
+                        <div class="help-text">{{ form.username.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}{{ form.email.errors }}{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password1.id_for_label }}">Password</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}{{ form.password1.errors }}{% endif %}
+                    {% if form.password1.help_text %}
+                        <div class="help-text">{{ form.password1.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}{{ form.password2.errors }}{% endif %}
+                    {% if form.password2.help_text %}
+                        <div class="help-text">{{ form.password2.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn-register">Sign Up</button>
+        </form>
+
+        <p class="register-footer">
+            Already have an account? <a href="{% url 'login' %}">Login here</a>
+        </p>
+    </div>
 </div>
 {% endblock %}

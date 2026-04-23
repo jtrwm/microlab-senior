@@ -513,3 +513,6 @@ def calendar_events(request):
             })
             
     return JsonResponse(events, safe=False)
+
+def dashboard_view(request):
+    return render(request, 'micro_lab/dashboard.html')

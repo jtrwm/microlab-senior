@@ -1,15 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Lab Dashboard</title>
-</head>
-<body>
+{% extends 'micro_lab/base.html' %}
+{% load static %}
 
-<h1>Microanatomy Lab Dashboard</h1>
+{% block title %}Lab Dashboard{% endblock %}
 
-<iframe width="100%" height="800"
-src="https://datastudio.google.com/reporting/89130dd2-4a18-4de1-b28f-c4998f013260">
-</iframe>
+{% block content %}
+<div class="dashboard-page">
+    <div class="dashboard-header">
+        <div>
+            <p class="dashboard-breadcrumb">Dashboard / Laboratory Analytics</p>
+            <h1 class="dashboard-title">Microanatomy Laboratory Operations Dashboard</h1>
+            <p class="dashboard-subtitle">
+                Overview of laboratory access, equipment activity, and chemical usage.
+            </p>
+        </div>
 
-</body>
-</html>
+        <div class="dashboard-actions">
+            <a href="{% url 'home' %}" class="back-home-btn">← Back to Home</a>
+        </div>
+    </div>
+
+    <div class="dashboard-frame">
+        <iframe 
+            src="https://datastudio.google.com/embed/reporting/89130dd2-4a18-4de1-b28f-c4998f013260/page/282vF"
+            frameborder="0"
+            allowfullscreen
+            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
+        </iframe>
+    </div>
+</div>
+{% endblock %}

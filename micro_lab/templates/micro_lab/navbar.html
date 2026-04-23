@@ -3,7 +3,7 @@
         <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
         <a href="{% url 'booking' %}" class="{% if request.resolver_match.url_name == 'booking' %}active{% endif %}">Booking</a>
         <a href="{% url 'all_slides' %}" class="{% if request.resolver_match.url_name == 'all_slides' %}active{% endif %}">Slides</a>
-        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'all_slides' %}active{% endif %}">Dashboard</a>
+        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
     </nav>
     <div class="profile-section">
         {% if user.is_authenticated %}

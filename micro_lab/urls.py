@@ -12,4 +12,5 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('all-slides/', views.all_slides_view, name='all_slides'),
     path('api/calendar-events/', views.calendar_events, name='calendar_events'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
 ]
