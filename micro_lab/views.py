@@ -479,7 +479,6 @@ def calendar_events(request):
         delta_days = (end_dt.date() - start_dt.date()).days
 
         if delta_days == 0:
-            # จองวันเดียว: St.6: 2:00pm - 4:00pm
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: {start_time_str} - {end_time_str}",
@@ -487,14 +486,12 @@ def calendar_events(request):
                 'end': end_dt.isoformat(),
             })
         else:
-            # วันเริ่ม: St.6: Start 2:00pm -
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: Start {start_time_str} -",
                 'start': start_dt.isoformat(),
                 'end': start_dt.replace(hour=23, minute=59).isoformat(),
             })
-            # วันกลาง
             curr = start_dt.date() + timedelta(days=1)
             while curr < end_dt.date():
                 events.append({
@@ -504,7 +501,6 @@ def calendar_events(request):
                     'allDay': True,
                 })
                 curr += timedelta(days=1)
-            # วันจบ: St.6: Ends 12:00am
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: Ends {end_time_str}",
@@ -514,5 +510,72 @@ def calendar_events(request):
             
     return JsonResponse(events, safe=False)
 
+@login_required
 def dashboard_view(request):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
     return render(request, 'micro_lab/dashboard.html')
+
+@login_required
+def admin_dashboard(request):
+    # ตรวจสอบว่าเป็น Admin หรือไม่ (อาจจะเช็คจาก is_staff หรือกลุ่มผู้ใช้)
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+
+    # ดึงรายการจองทั้งหมด เรียงตามวันที่ล่าสุด
+    all_bookings = Booking.objects.all().order_by('-daystart')
+    
+    # กรองข้อมูลเบื้องต้น (เช่น ตามสถานะ)
+    status_filter = request.GET.get('status')
+    if status_filter:
+        all_bookings = all_bookings.filter(booking_status=status_filter)
+
+    return render(request, 'micro_lab/labadmin.html', {'bookings': all_bookings})
+
+@login_required
+def cancel_booking(request, booking_id):
+    booking = Booking.objects.get(booking_id=booking_id)
+    
+    # Logic: User ยกเลิกของตัวเองได้ หรือ Admin ยกเลิกของใครก็ได้
+    if request.user.id == booking.user_id or request.user.is_staff:
+        booking.booking_status = 'CANCELLED'
+        booking.cancellation_reason = request.POST.get('reason', 'Cancelled by user/admin')
+        booking.save()
+        messages.success(request, f"ยกเลิกการจอง {booking_id} เรียบร้อยแล้ว")
+    else:
+        messages.error(request, "คุณไม่มีสิทธิ์ยกเลิกรายการนี้")
+        
+    return redirect('admin_dashboard' if request.user.is_staff else 'user_profile')
+
+@login_required
+def edit_booking(request, booking_id):
+    booking = Booking.objects.get(booking_id=booking_id)
+    
+    if request.method == 'POST':
+        # รับค่าวันที่และเวลาใหม่จากฟอร์ม
+        new_start = timezone.make_aware(datetime.datetime.strptime(
+            f"{request.POST['start_date']} {request.POST['start_time']}", "%Y-%m-%d %I:%M %p"))
+        new_end = timezone.make_aware(datetime.datetime.strptime(
+            f"{request.POST['end_date']} {request.POST['end_time']}", "%Y-%m-%d %I:%M %p"))
+
+        # ตรวจสอบการซ้อนทับ (ยกเว้นรายการตัวเอง)
+        overlap = Booking.objects.filter(
+            station_id=booking.station_id,
+            booking_status='CONFIRMED',
+            daystart__lt=new_end,
+            dayend__gt=new_start
+        ).exclude(booking_id=booking.booking_id).exists()
+
+        if overlap:
+            messages.error(request, "ไม่สามารถเปลี่ยนเวลาได้ เนื่องจากทับซ้อนกับการจองอื่น")
+        else:
+            booking.daystart = new_start
+            booking.dayend = new_end
+            booking.save()
+            messages.success(request, "แก้ไขข้อมูลการจองเรียบร้อยแล้ว")
+            return redirect('admin_dashboard')
+
+    return render(request, 'micro_lab/edit_booking.html', {'booking': booking})

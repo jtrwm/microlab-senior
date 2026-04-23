@@ -71,6 +71,8 @@ body {
 
 .station-info {
     padding: 10px;
+    padding-top: 1px;
+    padding-bottom: 3px;
 }
 
 .status-available {
@@ -268,4 +270,21 @@ body {
     border: none;
     border-radius: 14px;
     background: #fff;
+}
+
+.swal2-popup {
+    border-radius: 24px !important; /* ปรับตัวเลขได้ตามใจชอบ ยิ่งเยอะยิ่งมน */
+}
+
+/* ปรับความมนของปุ่ม "ตกลง" */
+.swal2-confirm {
+    border-radius: 12px !important; 
+}
+
+.swal2-icon {
+    transform: scale(0.8) !important; /* 0.6 คือการย่อเหลือ 60% ของขนาดเดิม ลองปรับเป็น 0.5 หรือ 0.7 ได้ครับ */
+    margin-top: 20px !important;      /* ปรับระยะห่างด้านบนไม่ให้ชิดขอบเกินไป */
+}
+.swal2-title {
+    margin-top: 0px
 }

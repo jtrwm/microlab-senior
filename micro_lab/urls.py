@@ -13,4 +13,7 @@ urlpatterns = [
     path('all-slides/', views.all_slides_view, name='all_slides'),
     path('api/calendar-events/', views.calendar_events, name='calendar_events'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('labadmin/', views.admin_dashboard, name='labadmin'), 
+    path('labadmin/cancel/<str:booking_id>/', views.cancel_booking, name='cancel_booking'),
+    path('labadmin/edit/<str:booking_id>/', views.edit_booking, name='edit_booking'),
 ]
