@@ -10,6 +10,14 @@ NUM_INVENTORY = 100
 NUM_USAGE = 300
 
 # =========================
+# Load user จริง
+# =========================
+df_users = pd.read_csv("auth_user_new.csv")
+
+# สมมติ column ชื่อ id
+user_ids = df_users["id"].tolist()
+
+# =========================
 # Helper functions
 # =========================
 def random_id(prefix, length=6):
@@ -19,6 +27,7 @@ def random_date(start, end):
     delta = end - start
     return start + timedelta(days=random.randint(0, delta.days))
 
+# ✅ ใช้ของคุณเลย
 def generate_pg_timestamp():
     dt = datetime(2025,1,1, tzinfo=timezone.utc) + timedelta(
         days=random.randint(0,365),
@@ -62,10 +71,12 @@ for _ in range(NUM_USAGE):
     usage_id = random_id("USE")
     inv_id = random.choice(inv_ids)
 
-    # ✅ random user 1–50
-    user_id = random.randint(1, 50)
+    # ✅ ใช้ user จริง
+    user_id = random.choice(user_ids)
 
     value_use = round(random.uniform(1, 50), 2)
+
+    # ✅ ใช้ timestamptz format ของคุณ
     usage_date = generate_pg_timestamp()
 
     usage_data.append({
@@ -84,4 +95,4 @@ df_usage = pd.DataFrame(usage_data)
 df_inventory.to_csv("chemical_inventory.csv", index=False)
 df_usage.to_csv("chemical_usage.csv", index=False)
 
-print("✅ Done (no CSV, user 1–50)")
+print("✅ Done (ใช้ user จริง + timestamptz แล้ว)")
