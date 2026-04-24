@@ -1,62 +1,132 @@
 {% extends "micro_lab/base.html" %}
+{% load static %}
+{% load tz %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="font-weight: 700;">Admin Management</h2>
-        <span class="badge bg-primary px-3 py-2" style="border-radius: 20px;">Staff Only</span>
-    </div>
+<link rel="stylesheet" href="{% static 'css/labadmin.css' %}">
+<div class="admin-wrapper">
+    <ul class="admin-sidebar">
+        <li><a href="#" class="active">• แก้ไขข้อมูลการจอง</a></li>
+        <li><a href="#">• แก้ไขข้อมูลสไลด์</a></li>
+        <li><a href="#">• แก้ไขข้อมูลผู้ใช้งาน</a></li>
+        <li><a href="#">• แก้ไขข้อมูล Dashboard</a></li>
+    </ul>
 
-    <div class="card shadow-sm" style="border-radius: 15px; overflow: hidden; border: none;">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Station</th>
-                        <th>User</th>
-                        <th>Date & Time</th>
-                        <th>Status</th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for b in bookings %}
-                    <tr style="vertical-align: middle;">
-                        <td class="ps-4"><small class="text-muted">{{ b.booking_id|truncatechars:8 }}</small></td>
-                        <td><strong>St.{{ b.station_id }}</strong></td>
-                        <td>{{ b.user_id }}</td>
-                        <td>
-                            <div>{{ b.daystart|date:"d M Y" }}</div>
-                            <small class="text-muted">{{ b.daystart|date:"h:i A" }} - {{ b.dayend|date:"h:i A" }}</small>
-                        </td>
-                        <td>
-                            {% if b.booking_status == 'CONFIRMED' %}
-                                <span class="badge bg-success-subtle text-success px-3" style="border-radius: 12px;">Confirmed</span>
-                            {% else %}
-                                <span class="badge bg-danger-subtle text-danger px-3" style="border-radius: 12px;">Cancelled</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            {% if b.booking_status == 'CONFIRMED' %}
-                                <a href="{% url 'edit_booking' b.booking_id %}" class="btn btn-sm btn-outline-primary me-2" style="border-radius: 8px;">Edit</a>
-                                <button onclick="confirmCancel('{{ b.booking_id }}')" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;">Cancel</button>
-                                
-                                <form id="cancel-form-{{ b.booking_id }}" action="{% url 'cancel_booking' b.booking_id %}" method="POST" style="display: none;">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="reason" id="reason-{{ b.booking_id }}">
-                                </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="admin-main">
+        <h1 class="header-title">
+            {% if user.first_name %}
+                {{ user.first_name }}
+            {% else %}
+                {{ user.username }}
+            {% endif %}
+        </h1>
+
+        <h3 style="font-weight: bold; margin-bottom: 20px;">ข้อมูลการจอง</h3>
+
+        <ul class="tab-nav">
+            <li class="active" onclick="switchTab('upcoming')">ยังไม่มาถึง</li>
+            <li onclick="switchTab('past')">ที่ผ่านมา</li>
+            <li onclick="switchTab('cancel', this)" style="padding: 10px 15px;">ถูกยกเลิก</li>
+        </ul>
+
+        <div id="upcoming-content">
+            {% for b in upcoming_bookings %}
+            <div class="booking-card" style="display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #f5f5f5;">
+                <div class="booking-info" style="flex-grow: 1; padding-right: 20px;">
+                    
+                    <div style="display: flex; align-items: baseline; gap: 15px; margin-bottom: 8px;">
+                        <h5 style="margin: 0; font-weight: 800; color: #333;">User: {{ b.username_display }}</h5>
+                        <span style="color: #8e8e8e; font-size: 14px;"><strong>User ID:</strong> {{ b.user_id }}</span>
+                    </div>
+
+                    <div style="font-size: 16px; font-weight: 600; color: #555; margin-bottom: 12px;">
+                        Station {{ b.station_id }} : {{ b.station_name }}
+                    </div>
+
+                    <div class="booking-details" style="color: #8e8e8e; font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 20px;">
+                        <span><strong>Start:</strong> {{ b.daystart|date:"d M Y" }} เวลา {{ b.daystart|date:"g:i A" }}</span>
+                        <span><strong>End:</strong> {{ b.dayend|date:"d M Y" }} เวลา {{ b.dayend|date:"g:i A" }}</span>
+                        <span>
+                            <strong>Duration:</strong> {{ b.duration_days }} วัน {{ b.duration_hours }} ชั่วโมง
+                        </span>
+                    </div>
+                </div>
+
+                <div class="btn-group-custom">
+                    {% if b in upcoming_bookings %}
+                        <button onclick="openEditModal('{{ b.booking_id }}', '{{ b.daystart|date:'Y-m-d' }}', '{{ b.daystart|time:'H:i' }}', '{{ b.dayend|date:'Y-m-d' }}', '{{ b.dayend|time:'H:i' }}')" class="btn-pill" style="background:#007bff; color:white; border:none;">Edit</button>
+                        <button onclick="confirmCancel('{{ b.booking_id }}')" class="btn-pill" style="background:#ff4d4d; color:white; border:none;">Cancel</button>
+                    {% else %}
+                        <span class="btn-pill" style="background: #e0e0e0; color: #777; cursor: default;">Ended</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="past-content" style="display: none;">
+            {% for b in past_bookings %}
+            <div class="booking-card" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f5f5f5;">
+                <div class="booking-info" style="flex-grow: 1; padding-right: 20px;">
+                    <div style="display: flex; align-items: baseline; gap: 15px; margin-bottom: 8px;">
+                        <h5 style="margin: 0; font-weight: 800; color: #333;">User: {{ b.username_display }}</h5>
+                        <span style="color: #8e8e8e; font-size: 14px;"><strong>User ID:</strong> {{ b.user_id }}</span>
+                    </div>
+                    <div style="font-size: 16px; font-weight: 600; color: #555; margin-bottom: 12px;">
+                        Station {{ b.station_id }} : {{ b.station_name }}
+                    </div>
+                    <div class="booking-details" style="color: #8e8e8e; font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 20px;">
+                        <span><strong>Start:</strong> {{ b.daystart|date:"d M Y" }} เวลา {{ b.daystart|date:"g:i A" }}</span>
+                        <span><strong>End:</strong> {{ b.dayend_display|date:"d M Y" }} เวลา {{ b.dayend_display|date:"g:i A" }}</span>
+                        <span >
+                            <strong>Duration:</strong> {{ b.duration_days }} วัน {{ b.duration_hours }} ชั่วโมง
+                        </span>
+                    </div>
+                </div>
+                <span class="btn-pill" style="background: #e0e0e0;">Ended</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="cancel-content" style="display: none;">
+            {% for b in cancelled_bookings %}
+            <div class="booking-card" style="display: flex; align-items: center; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #eee; opacity: 0.8;">
+                <div class="booking-info" style="flex-grow: 1;">
+                    
+                    <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px;">
+                        <h5 style="margin: 0; font-weight: 800; color: #333; font-size: 1.1rem;">User: {{ b.username_display }}</h5>
+                        <span style="color: #8e8e8e; font-size: 13px;"><strong>Full ID:</strong> {{ b.booking_id }}</span>
+                    </div>
+
+                    <div style="font-size: 15px; font-weight: 600; color: #555; margin-bottom: 10px;">
+                        Station {{ b.station_id }} : {{ b.station_name }}
+                    </div>
+
+                    <div class="booking-details" style="color: #777; font-size: 13px; display: flex; flex-wrap: wrap; gap: 15px;">
+                        <span><strong>Start:</strong> {{ b.daystart|date:"d M Y" }} เวลา {{ b.daystart|date:"g:i A" }}</span>
+                        <span><strong>End:</strong> {{ b.dayend|date:"d M Y" }} เวลา {{ b.dayend|date:"g:i A" }}</span>
+                        <span><strong>Duration:</strong> {{ b.duration_days }} วัน {{ b.duration_hours }} ชั่วโมง</span>
+                    </div>
+                </div>
+
+                <span class="btn-pill" style="background: #ffe6e6; color: #cc0000; font-weight: 700; padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: default;">Cancelled</span>
+                
+            </div>
+            {% empty %}
+            <p style="padding: 20px; color: #999;">ไม่มีรายการที่ถูกยกเลิก</p>
+            {% endfor %}
         </div>
     </div>
 </div>
 
 <script>
+    document.querySelectorAll('.tab-nav li').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tab-nav li').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
     function confirmCancel(bookingId) {
         Swal.fire({
             title: 'ยืนยันการยกเลิก?',
@@ -74,6 +144,105 @@
                 document.getElementById('cancel-form-' + bookingId).submit();
             }
         })
+    }
+
+    /*function switchTab(tab) {
+        // สลับปุ่ม Active
+        document.querySelectorAll('.tab-nav li').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // สลับเนื้อหา
+        if (tab === 'upcoming') {
+            document.getElementById('upcoming-content').style.display = 'block';
+            document.getElementById('past-content').style.display = 'none';
+        } else {
+            document.getElementById('upcoming-content').style.display = 'none';
+            document.getElementById('past-content').style.display = 'block';
+        }
+    }*/
+    function switchTab(tabName, element) {
+    // 1. ซ่อนเนื้อหาของทุก Tab
+    document.getElementById('upcoming-content').style.display = 'none';
+    document.getElementById('past-content').style.display = 'none';
+    document.getElementById('cancel-content').style.display = 'none';
+    
+    // 2. โชว์เนื้อหาเฉพาะ Tab ที่คลิก
+    document.getElementById(tabName + '-content').style.display = 'block';
+    
+    // 3. จัดการแถบ Active (เปลี่ยนสีเส้นใต้/ตัวหนา)
+    let tabs = document.querySelectorAll('.tab-nav li');
+    tabs.forEach(tab => {
+        tab.classList.remove('active');
+        tab.style.fontWeight = 'normal'; // ตัวอย่างปรับสไตล์กลับ
+    });
+    
+    if(element) {
+        element.classList.add('active');
+        element.style.fontWeight = 'bold'; // ทำให้ปุ่มที่ถูกเลือกเป็นตัวหนา
+    }
+}
+</script>
+<div id="editModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 12px; width: 400px; max-width: 90%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: #333;">Edit Booking</h3>
+        
+        <form id="editForm" method="POST" action="">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; color: #555; display: block; margin-bottom: 5px;">Start Date & Time:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="start_date" name="start_date" required style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                    <input type="time" id="start_time" name="start_time" required style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="font-weight: 600; color: #555; display: block; margin-bottom: 5px;">End Date & Time:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" id="end_date" name="end_date" required style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                    <input type="time" id="end_time" name="end_time" required style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeEditModal()" class="btn-pill" style="background: #e0e0e0; color: #333; border: none; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn-pill" style="background: #28a745; color: white; border: none; cursor: pointer;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditModal(bookingId, startDate, startTime, endDate, endTime) {
+        
+        // 🚀 ใช้ Regex ล้างทั้งช่องว่างปกติ (\s) และตัว %20 ออกให้เกลี้ยง!
+        let cleanId = bookingId.replace(/%20/g, '').replace(/\s/g, '');
+        
+        document.getElementById('editForm').action = "/labadmin/edit_booking/" + cleanId + "/";
+        document.getElementById('start_date').value = startDate;
+        document.getElementById('start_time').value = startTime;
+        document.getElementById('end_date').value = endDate;
+        document.getElementById('end_time').value = endTime;
+        
+        // แสดง Pop-up
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        // ซ่อน Pop-up
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function confirmCancel(bookingId) {
+        // 1. ถามเพื่อความชัวร์ (UX ที่ดีของระบบ)
+        if (confirm("คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองนี้?")) {
+            // 2. ล้างช่องว่างเผื่อเหนียว (ท่าไม้ตายเดิม)
+            let cleanId = bookingId.replace(/%20/g, '').replace(/\s/g, '');
+            
+            // 3. สั่งให้เบราว์เซอร์วิ่งไปที่ URL ยกเลิกการจอง
+            window.location.href = "/labadmin/cancel/" + cleanId + "/";
+        }
     }
 </script>
 {% endblock %}

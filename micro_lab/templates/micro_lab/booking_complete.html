@@ -111,8 +111,7 @@
 
 <body>
 
-    <h1>Booking Complet</h1>
-
+    <h1>Booking Complete</h1>
     <div class="card">
         <div class="station-image-container">
         {% with filename=booking.station_name|lower|cut:' '|add:'.jpg' %}
@@ -122,6 +121,7 @@
         {% endwith %}
     </div>
         <div class="info">
+            <div class="station-name">User: {{ booking.username_display }}</div>
             <div class="station-name">Station {{ booking.station_id }}</div>
             <div class="date">
                 <strong>Start:</strong> {{ booking.daystart|date:"l, d M Y" }} 

@@ -385,12 +385,26 @@ def api_get_booked_slots(request):
 @login_required
 def booking_complete(request, booking_id):
     try:
-        booking = Booking.objects.get(booking_id=booking_id)
+        # ดึงข้อมูลแค่รอบเดียวพอครับ (ลบบรรทัดที่ซ้ำออก)
         booking_obj = Booking.objects.get(booking_id=booking_id)
+        
+        # 1. จัดการชื่อสถานี
         station_obj = Station.objects.get(station_id=booking_obj.station_id)
         booking_obj.station_name = station_obj.station_name
-        # แก้ตรงนี้: เติม micro_lab/ นำหน้าชื่อไฟล์
+        
+        # 🚀 2. จัดการดึงชื่อ Username มาใส่ในตัวแปร username_display
+        uid = getattr(booking_obj, 'user_id', None) or getattr(booking_obj, 'auth_user_id', None)
+        
+        if uid:
+            # หา User จากฐานข้อมูล
+            user_record = User.objects.filter(id=uid).first()
+            booking_obj.username_display = user_record.username if user_record else f"User {uid}"
+        else:
+            # ไม้ตายสุดท้าย: ถ้าใน DB ไม่มี ID ให้ใช้ชื่อคนที่กำลัง Login อยู่เลย
+            booking_obj.username_display = request.user.username
+
         return render(request, 'micro_lab/booking_complete.html', {'booking': booking_obj})
+        
     except (Booking.DoesNotExist, Station.DoesNotExist):
         return render(request, 'micro_lab/404.html')
     
@@ -435,8 +449,6 @@ def all_slides_view(request):
         'end_index': slides.end_index() if slides else 0,
     }
     return render(request, 'micro_lab/all_slides.html', context)
-
-# micro_lab/views.py
 
 def calendar_events(request):
     bookings = Booking.objects.filter(booking_status='CONFIRMED')
@@ -520,35 +532,137 @@ def dashboard_view(request):
 
 @login_required
 def admin_dashboard(request):
-    # ตรวจสอบว่าเป็น Admin หรือไม่ (อาจจะเช็คจาก is_staff หรือกลุ่มผู้ใช้)
     if not request.user.is_staff:
         messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
         return redirect('home')
-
-    # ดึงรายการจองทั้งหมด เรียงตามวันที่ล่าสุด
+    
     all_bookings = Booking.objects.all().order_by('-daystart')
     
-    # กรองข้อมูลเบื้องต้น (เช่น ตามสถานะ)
-    status_filter = request.GET.get('status')
-    if status_filter:
-        all_bookings = all_bookings.filter(booking_status=status_filter)
+    # 🚀 แก้ปัญหาเปรียบเทียบเวลา: ถอด Timezone ออกให้เป็น Naive เหมือนกัน
+    now = timezone.now().replace(tzinfo=None)
+    
+    upcoming_bookings = []
+    past_bookings = []
+    cancelled_bookings = []
+    
+    # ดึงข้อมูล User และ Station มาทำ Map (ช่วยให้ดึง Username ขึ้น)
+    users_map = {str(u.id): u.username for u in User.objects.all()}
+    stations_map = {str(s.pk): s for s in Station.objects.all()}
+    
+    for b in all_bookings:
+        # 1. ดึง Username มาจากตาราง auth_user (ผ่าน Map)
+        uid = getattr(b, 'user_id', None) or getattr(b, 'auth_user_id', None)
+        uid_str = str(uid).strip() if uid else ""
+        b.username_display = users_map.get(uid_str, f"User {uid_str}")
 
-    return render(request, 'micro_lab/labadmin.html', {'bookings': all_bookings})
+        # 2. ดึงชื่อสถานี
+        s_id = str(b.station_id).strip()
+        station_obj = stations_map.get(s_id)
+        b.station_name = station_obj.station_name if station_obj else "Unknown"
+
+        if b.daystart and b.dayend:
+            # 🚀 ถอด Timezone ออกจากเวลาใน DB เพื่อใช้เปรียบเทียบและบวกเวลา
+            b_start = b.daystart.replace(tzinfo=None) if b.daystart.tzinfo else b.daystart
+            b_end = b.dayend.replace(tzinfo=None) if b.dayend.tzinfo else b.dayend
+
+            # 3. คำนวณระยะเวลา
+            delta = b_end - b_start
+            b.duration_days = delta.days
+            b.duration_hours = delta.seconds // 3600
+
+            # 4. แยกประเภท Tab (Upcoming / Past)
+            is_upcoming = b_end >= now
+
+            # 5. บวกเวลา 7 ชั่วโมงเพื่อแสดงผลเป็นเวลาไทย
+            b.daystart = b_start + timedelta(hours=7)
+            b.dayend = b_end + timedelta(hours=7)
+
+            if b.booking_status == 'CANCELLED':
+                # ถ้ายกเลิกแล้ว ให้โยนลงตะกร้า Cancelled เลย
+                cancelled_bookings.append(b)
+            else:
+                # ถ้ายังไม่ยกเลิก ค่อยมาเช็คว่าเป็น Upcoming หรือ Past
+                is_upcoming = b.dayend >= now
+                if is_upcoming:
+                    upcoming_bookings.append(b)
+                else:
+                    past_bookings.append(b)
+                
+        
+
+    return render(request, 'micro_lab/labadmin.html', {
+        'upcoming_bookings': upcoming_bookings,
+        'past_bookings': past_bookings,
+        'cancelled_bookings': cancelled_bookings
+    })
+    
+def admin_edit_booking(request, booking_id):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        booking = Booking.objects.get(booking_id=booking_id)
+        try:
+            # 🚀 รับค่าวันที่และเวลาใหม่จาก Pop-up
+            # ใช้ %H:%M เพราะ input type="time" ของ HTML จะส่งค่าเป็น 24 ชม. เสมอ
+            start_str = f"{request.POST['start_date']} {request.POST['start_time']}"
+            end_str = f"{request.POST['end_date']} {request.POST['end_time']}"
+            
+            new_start = timezone.make_aware(datetime.datetime.strptime(
+                f"{request.POST['start_date']} {request.POST['start_time']}", "%Y-%m-%d %H:%M"))
+            
+            new_end = timezone.make_aware(datetime.datetime.strptime(
+                f"{request.POST['end_date']} {request.POST['end_time']}", "%Y-%m-%d %H:%M"))
+                # ตรวจสอบการซ้อนทับ
+            overlap = Booking.objects.filter(
+                station_id=booking.station_id,
+                booking_status='CONFIRMED',
+                daystart__lt=new_end,
+                dayend__gt=new_start
+            ).exclude(booking_id=booking.booking_id).exists()
+
+            if overlap:
+                messages.error(request, "ไม่สามารถเปลี่ยนเวลาได้ เนื่องจากทับซ้อนกับการจองอื่น")
+            else:
+                booking.daystart = new_start
+                booking.dayend = new_end
+                booking.save()
+                messages.success(request, "แก้ไขข้อมูลการจองเรียบร้อยแล้ว")
+                
+        except Exception as e:
+            messages.error(request, "เกิดข้อผิดพลาดในการประมวลผลเวลา กรุณาลองใหม่")
+            
+    return redirect('labadmin')
 
 @login_required
-def cancel_booking(request, booking_id):
-    booking = Booking.objects.get(booking_id=booking_id)
-    
-    # Logic: User ยกเลิกของตัวเองได้ หรือ Admin ยกเลิกของใครก็ได้
-    if request.user.id == booking.user_id or request.user.is_staff:
-        booking.booking_status = 'CANCELLED'
-        booking.cancellation_reason = request.POST.get('reason', 'Cancelled by user/admin')
-        booking.save()
-        messages.success(request, f"ยกเลิกการจอง {booking_id} เรียบร้อยแล้ว")
-    else:
-        messages.error(request, "คุณไม่มีสิทธิ์ยกเลิกรายการนี้")
+def cancel_booking(request, booking_id):  
+    # 1. ล้างช่องว่างที่อาจจะติดมากับ URL (กันพลาดแบบเคส Edit)
+    clean_id = str(booking_id).strip()
+
+    try:
+        # 2. ใช้ try...except ดักจับ เผื่อมีคนซนพิมพ์ ID มั่วๆ ใน URL เว็บจะได้ไม่พัง (Error 500)
+        booking = Booking.objects.get(booking_id=clean_id)
         
-    return redirect('admin_dashboard' if request.user.is_staff else 'user_profile')
+        # 3. ดึง user_id จาก Database มาแบบเซฟๆ (เพราะเราเคยเจอเคสชื่อฟิลด์ไม่ตรงกัน)
+        b_uid = getattr(booking, 'user_id', None) or getattr(booking, 'auth_user_id', None)
+        
+        # 4. แปลงทั้งคู่เป็น String (str) ก่อนเทียบกัน ป้องกันปัญหา Int เทียบกับ String แล้วไม่ตรง
+        if str(request.user.id) == str(b_uid) or request.user.is_staff:
+            booking.booking_status = 'CANCELLED'
+            # ... โค้ดส่วนที่เหลือ (ถ้ามี) ...
+            booking.save()
+            messages.success(request, "ยกเลิกการจองเรียบร้อยแล้ว")
+        else:
+            # ดักไว้เผื่อมีคนแอบพยายามลบของคนอื่น
+            messages.error(request, "คุณไม่มีสิทธิ์ยกเลิกการจองรายการนี้")
+            
+    except Booking.DoesNotExist:
+        messages.error(request, "ไม่พบข้อมูลการจอง หรือรายการนี้ถูกลบไปแล้ว")
+    except Exception as e:
+        messages.error(request, "เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่")
+        
+    return redirect('labadmin')
 
 @login_required
 def edit_booking(request, booking_id):
@@ -579,3 +693,4 @@ def edit_booking(request, booking_id):
             return redirect('admin_dashboard')
 
     return render(request, 'micro_lab/edit_booking.html', {'booking': booking})
+
