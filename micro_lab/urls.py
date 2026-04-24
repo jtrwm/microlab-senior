@@ -17,4 +17,7 @@ urlpatterns = [
     path('labadmin/cancel/<str:booking_id>/', views.cancel_booking, name='cancel_booking'),
     path('labadmin/edit_booking/<str:booking_id>/', views.admin_edit_booking, name='edit_booking'),
     path('labadmin/cancel/<str:booking_id>/', views.cancel_booking, name='cancel_booking'),
+    path('labadmin/admin_slides/', views.admin_slides, name='admin_slides'),
+    path('labadmin/slide/save/', views.save_slide, name='save_slide'),
+    path('labadmin/slide/delete/<str:slide_id>/', views.delete_slide, name='delete_slide'),
 ]

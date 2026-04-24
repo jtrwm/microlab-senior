@@ -1,5 +1,12 @@
-body { background-color: #ffffff; }
-    
+body { 
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #ffffff; }
+
+    .sidebar-wrapper {
+        background: #f8f9fa;  
+        padding: 20px
+    }
     .sidebar-menu { background: #f8f9fa; border-radius: 12px; padding: 20px; list-style: none; }
     .sidebar-menu li { margin-bottom: 15px; }
     .sidebar-menu a { text-decoration: none; color: #8e8e8e; font-size: 14px; }
@@ -52,7 +59,7 @@ body { background-color: #ffffff; }
 
     /* Sidebar - บังคับขนาดคงที่ */
     .admin-sidebar {
-        width: 250px;
+        width: 200px;
         flex-shrink: 0;
         background: #f8f9fa;
         padding: 25px 15px;

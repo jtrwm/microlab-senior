@@ -1,0 +1,36 @@
+{% extends 'micro_lab/base.html' %}
+{% load static %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/labadmin.css' %}">
+<div class="admin-container" style="display: flex; min-height: 80vh;">
+    
+    <div class="sidebar-wrapper" style="width: 210px; border-right: 1px solid #eee; padding-right: 20px;">
+        <ul class="admin-sidebar" style="list-style: none; padding: 0;">
+            <li>
+                <a href="{% url 'labadmin' %}" 
+                   class="{% if request.resolver_match.url_name == 'labadmin' %}active{% endif %}"
+                   style="display: block; padding: 10px; text-decoration: none; color: #333;">
+                   • แก้ไขข้อมูลการจอง
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_slides' %}" 
+                   class="{% if request.resolver_match.url_name == 'admin_slides' %}active{% endif %}"
+                   style="display: block; padding: 10px; text-decoration: none; color: #333;">
+                   • แก้ไขข้อมูลสไลด์
+                </a>
+            </li>
+            
+            <li><a href="#" style="display: block; padding: 10px; text-decoration: none; color: #333;">• แก้ไขข้อมูลผู้ใช้งาน</a></li>
+            <li><a href="#" style="display: block; padding: 10px; text-decoration: none; color: #333;">• แก้ไขข้อมูล Dashboard</a></li>
+        </ul>
+    </div>
+
+    <div class="admin-main-content" style="flex-grow: 1; padding: 0 20px;">
+        {% block admin_content %}
+        {% endblock %}
+    </div>
+
+</div>
+{% endblock %} 

@@ -538,50 +538,40 @@ def admin_dashboard(request):
     
     all_bookings = Booking.objects.all().order_by('-daystart')
     
-    # 🚀 แก้ปัญหาเปรียบเทียบเวลา: ถอด Timezone ออกให้เป็น Naive เหมือนกัน
     now = timezone.now().replace(tzinfo=None)
     
     upcoming_bookings = []
     past_bookings = []
     cancelled_bookings = []
     
-    # ดึงข้อมูล User และ Station มาทำ Map (ช่วยให้ดึง Username ขึ้น)
     users_map = {str(u.id): u.username for u in User.objects.all()}
     stations_map = {str(s.pk): s for s in Station.objects.all()}
     
     for b in all_bookings:
-        # 1. ดึง Username มาจากตาราง auth_user (ผ่าน Map)
         uid = getattr(b, 'user_id', None) or getattr(b, 'auth_user_id', None)
         uid_str = str(uid).strip() if uid else ""
         b.username_display = users_map.get(uid_str, f"User {uid_str}")
 
-        # 2. ดึงชื่อสถานี
         s_id = str(b.station_id).strip()
         station_obj = stations_map.get(s_id)
         b.station_name = station_obj.station_name if station_obj else "Unknown"
 
         if b.daystart and b.dayend:
-            # 🚀 ถอด Timezone ออกจากเวลาใน DB เพื่อใช้เปรียบเทียบและบวกเวลา
             b_start = b.daystart.replace(tzinfo=None) if b.daystart.tzinfo else b.daystart
             b_end = b.dayend.replace(tzinfo=None) if b.dayend.tzinfo else b.dayend
 
-            # 3. คำนวณระยะเวลา
             delta = b_end - b_start
             b.duration_days = delta.days
             b.duration_hours = delta.seconds // 3600
 
-            # 4. แยกประเภท Tab (Upcoming / Past)
             is_upcoming = b_end >= now
 
-            # 5. บวกเวลา 7 ชั่วโมงเพื่อแสดงผลเป็นเวลาไทย
             b.daystart = b_start + timedelta(hours=7)
             b.dayend = b_end + timedelta(hours=7)
 
             if b.booking_status == 'CANCELLED':
-                # ถ้ายกเลิกแล้ว ให้โยนลงตะกร้า Cancelled เลย
                 cancelled_bookings.append(b)
             else:
-                # ถ้ายังไม่ยกเลิก ค่อยมาเช็คว่าเป็น Upcoming หรือ Past
                 is_upcoming = b.dayend >= now
                 if is_upcoming:
                     upcoming_bookings.append(b)
@@ -636,25 +626,18 @@ def admin_edit_booking(request, booking_id):
     return redirect('labadmin')
 
 @login_required
-def cancel_booking(request, booking_id):  
-    # 1. ล้างช่องว่างที่อาจจะติดมากับ URL (กันพลาดแบบเคส Edit)
+def cancel_booking(request, booking_id): #admin
     clean_id = str(booking_id).strip()
-
     try:
-        # 2. ใช้ try...except ดักจับ เผื่อมีคนซนพิมพ์ ID มั่วๆ ใน URL เว็บจะได้ไม่พัง (Error 500)
         booking = Booking.objects.get(booking_id=clean_id)
         
-        # 3. ดึง user_id จาก Database มาแบบเซฟๆ (เพราะเราเคยเจอเคสชื่อฟิลด์ไม่ตรงกัน)
         b_uid = getattr(booking, 'user_id', None) or getattr(booking, 'auth_user_id', None)
         
-        # 4. แปลงทั้งคู่เป็น String (str) ก่อนเทียบกัน ป้องกันปัญหา Int เทียบกับ String แล้วไม่ตรง
         if str(request.user.id) == str(b_uid) or request.user.is_staff:
             booking.booking_status = 'CANCELLED'
-            # ... โค้ดส่วนที่เหลือ (ถ้ามี) ...
             booking.save()
             messages.success(request, "ยกเลิกการจองเรียบร้อยแล้ว")
         else:
-            # ดักไว้เผื่อมีคนแอบพยายามลบของคนอื่น
             messages.error(request, "คุณไม่มีสิทธิ์ยกเลิกการจองรายการนี้")
             
     except Booking.DoesNotExist:
@@ -694,3 +677,50 @@ def edit_booking(request, booking_id):
 
     return render(request, 'micro_lab/edit_booking.html', {'booking': booking})
 
+@login_required
+def admin_slides(request):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
+    # 🚀 แก้จาก 'slide_name' เป็น 'sample_code' (หรือจะใช้ 'slide_id' ก็ได้ครับ)
+    slides = Slide.objects.all().order_by('sample_code')
+    return render(request, 'micro_lab/admin_slides.html', {'slides': slides})
+
+@login_required
+def save_slide(request):
+    if request.method == 'POST' and request.user.is_staff:
+        slide_id = request.POST.get('slide_id', '').strip()
+        
+        # 🚀 รับค่าจากฟอร์มให้ตรงกับ Database จริง
+        sample = request.POST.get('sample_code')
+        tissue = request.POST.get('tissue_type')
+        stain = request.POST.get('stain_type')
+        loc = request.POST.get('location')
+        
+        if slide_id:
+            try:
+                slide = Slide.objects.get(pk=slide_id)
+                slide.sample_code = sample
+                slide.tissue_type = tissue
+                slide.stain_type = stain
+                slide.location = loc
+                slide.save()
+                messages.success(request, "อัปเดตข้อมูลสไลด์เรียบร้อยแล้ว")
+            except Slide.DoesNotExist:
+                messages.error(request, "ไม่พบข้อมูลสไลด์ที่ต้องการแก้ไข")
+        else:
+            Slide.objects.create(
+                sample_code=sample,
+                tissue_type=tissue,
+                stain_type=stain,
+                location=loc
+            )
+            messages.success(request, "เพิ่มสไลด์ใหม่เรียบร้อยแล้ว")
+            
+    return redirect('admin_slides')
+
+@login_required
+def delete_slide(request, slide_id):
+    # ... (โค้ดลบข้อมูลเหมือนที่เคยให้ไป) ...
+    return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin

@@ -1,16 +1,9 @@
-{% extends "micro_lab/base.html" %}
+{% extends 'micro_lab/admin_base.html' %}
 {% load static %}
 {% load tz %}
 
-{% block content %}
+{% block admin_content %}
 <link rel="stylesheet" href="{% static 'css/labadmin.css' %}">
-<div class="admin-wrapper">
-    <ul class="admin-sidebar">
-        <li><a href="#" class="active">• แก้ไขข้อมูลการจอง</a></li>
-        <li><a href="#">• แก้ไขข้อมูลสไลด์</a></li>
-        <li><a href="#">• แก้ไขข้อมูลผู้ใช้งาน</a></li>
-        <li><a href="#">• แก้ไขข้อมูล Dashboard</a></li>
-    </ul>
 
     <div class="admin-main">
         <h1 class="header-title">
