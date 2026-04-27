@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'micro_lab',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -82,9 +83,10 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
         'USER': 'postgres.sqastdkrowpwfactzncc', 
-        'PASSWORD': 'thereasonwhywedonthavetimetosleep', 
+        'PASSWORD': 'thereasonwhywedonthavetimetosleep2026', 
         'HOST': 'aws-1-ap-northeast-1.pooler.supabase.com', 
         'PORT': '6543',
+        'DISABLE_SERVER_SIDE_CURSORS': True,
     }
 }
 
@@ -135,3 +137,21 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AWS_ACCESS_KEY_ID = 'e4b280a4951cec0e0a0f4d614c323a8b'
+AWS_SECRET_ACCESS_KEY = 'e9cbf7d056e3a51b4ef5fc4ac1bd960ff132e2f8db1bd26ebe63a1391b629807'
+AWS_STORAGE_BUCKET_NAME = 'Slide-images' 
+AWS_S3_ENDPOINT_URL = 'https://sqastdkrowpwfactzncc.supabase.co/storage/v1/s3'
+AWS_S3_REGION_NAME = 'ap-northeast-1'
+AWS_S3_ADDRESSING_STYLE = 'path'
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_DEFAULT_ACL = None
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

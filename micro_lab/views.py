@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import transaction
-from .models import Station, Booking, User, Slide
+from .models import Station, Booking, User, Slide, SlideImage
 from django.utils import timezone
 import datetime
 import calendar
@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required 
 from .forms import RegisterForm
 from django.core.paginator import Paginator
+from django.core.files.storage import default_storage
 
 def get_processed_stations(selected_pk=None):
     """
@@ -691,32 +692,81 @@ def admin_slides(request):
 def save_slide(request):
     if request.method == 'POST' and request.user.is_staff:
         slide_id = request.POST.get('slide_id', '').strip()
-        
-        # 🚀 รับค่าจากฟอร์มให้ตรงกับ Database จริง
         sample = request.POST.get('sample_code')
         tissue = request.POST.get('tissue_type')
         stain = request.POST.get('stain_type')
         loc = request.POST.get('location')
+        mag_input = request.POST.get('magnification', '1') # ถ้าไม่มีค่าส่งมา ให้ใช้ 1 เป็นค่าเริ่มต้น
+        try:
+            mag_value = int(mag_input) # แปลงให้เป็นตัวเลข (int4) ตาม Database
+        except ValueError:
+            mag_value = 1 # ถ้า User แอบส่งตัวอักษรมา ให้บังคับกลับเป็น 1 จะได้ไม่ Error
+        uploaded_image = request.FILES.get('slide_image')
         
-        if slide_id:
-            try:
+        try:
+            # ================= 1. จัดการข้อมูลสไลด์ (Slide) =================
+            if slide_id:
+                # แก้ไขสไลด์เดิม
                 slide = Slide.objects.get(pk=slide_id)
                 slide.sample_code = sample
                 slide.tissue_type = tissue
                 slide.stain_type = stain
                 slide.location = loc
                 slide.save()
-                messages.success(request, "อัปเดตข้อมูลสไลด์เรียบร้อยแล้ว")
-            except Slide.DoesNotExist:
-                messages.error(request, "ไม่พบข้อมูลสไลด์ที่ต้องการแก้ไข")
-        else:
-            Slide.objects.create(
-                sample_code=sample,
-                tissue_type=tissue,
-                stain_type=stain,
-                location=loc
-            )
-            messages.success(request, "เพิ่มสไลด์ใหม่เรียบร้อยแล้ว")
+                msg = "อัปเดตข้อมูลสไลด์เรียบร้อยแล้ว"
+            else:
+                # 🚀 สร้างรหัส S0001, S0002... อัตโนมัติ
+                last_slide = Slide.objects.all().order_by('slide_id').last()
+                if last_slide and last_slide.slide_id.startswith('S'):
+                    try:
+                        last_num = int(last_slide.slide_id[1:]) # ตัดตัว 'S' ออกแล้วแปลงเป็นตัวเลข
+                        new_slide_id = f"S{last_num + 1:04d}"   # บวก 1 แล้วจัดฟอร์แมตให้มี 0 นำหน้า 4 หลัก
+                    except ValueError:
+                        new_slide_id = "S0001"
+                else:
+                    new_slide_id = "S0001"
+
+                slide = Slide.objects.create(
+                    slide_id=new_slide_id,
+                    sample_code=sample,
+                    tissue_type=tissue,
+                    stain_type=stain,
+                    location=loc
+                )
+                msg = "เพิ่มสไลด์ใหม่เรียบร้อยแล้ว"
+
+            # ================= 2. จัดการอัปโหลดรูป (SlideImage) =================
+            if uploaded_image:
+                # สั่งให้ Django อัปโหลดไฟล์ขึ้น Supabase S3 ทันที
+                file_path = f"{uuid.uuid4().hex}_{uploaded_image.name}"
+                saved_path = default_storage.save(file_path, uploaded_image)
+                file_url = default_storage.url(saved_path)
+                
+                last_image = SlideImage.objects.all().order_by('image_id').last()
+                if last_image and last_image.image_id.startswith('IM'):
+                    try:
+                        last_num = int(last_image.image_id[2:]) # ตัดตัว 'IM' ออก
+                        new_image_id = f"IM{last_num + 1:04d}"   # บวก 1 และเติม 0 ให้ครบ 4 หลัก
+                    except ValueError:
+                        new_image_id = "IM0001"
+                else:
+                    new_image_id = "IM0001"
+                    
+                # นำ URL ไปเซฟลงตาราง SlideImage พร้อมกับเชื่อมความสัมพันธ์
+                SlideImage.objects.create(
+                    image_id=new_image_id,
+                    slide=slide, # เชื่อมกับสไลด์ที่เพิ่งสร้าง/แก้ไข ด้านบน
+                    user=request.user, # เชื่อมกับคนที่กำลังอัปโหลด (แอดมิน)
+                    image_url=file_url, # 🚀 เอาลิงก์ URL มาใส่ช่องนี้
+                    magnification=mag_value
+                )
+                msg += " (พร้อมอัปโหลดรูปภาพ)"
+                
+            messages.success(request, msg)
+            
+        except Exception as e:
+            # ดักจับ Error เผื่อมีปัญหาในการอัปโหลด
+            messages.error(request, f"เกิดข้อผิดพลาด: {str(e)}")
             
     return redirect('admin_slides')
 

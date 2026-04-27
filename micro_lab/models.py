@@ -58,14 +58,13 @@ class Slide(models.Model):
         managed = False  
         
 class SlideImage(models.Model):
-    iimage_id = models.AutoField(primary_key=True, db_column='image_id')
+    image_id = models.CharField(primary_key=True, max_length=50, db_column='image_id')
     slide = models.ForeignKey(Slide, on_delete=models.DO_NOTHING, db_column='slide_id', related_name='images')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, db_column='user_id')
     recorddate = models.DateTimeField(auto_now_add=True, db_column='recorddate')
-    image_url = models.TextField(db_column='image_url') # คอลัมน์ที่เพิ่มใหม่
-    magnification = models.CharField(max_length=50, db_column='magnification')
-
+    image_url = models.TextField(db_column='image_url') 
+    magnification = models.IntegerField(db_column='magnification')
     class Meta:
-        db_table = 'image' # ชื่อตารางรูปภาพใน Supabase
+        db_table = 'image' 
         managed = False
         

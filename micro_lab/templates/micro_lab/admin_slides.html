@@ -13,22 +13,40 @@
     <table style="width: 100%; border-collapse: collapse; text-align: left;">
         <thead>
             <tr style="background-color: #f8f9fa; border-bottom: 2px solid #ddd;">
-                <th style="padding: 12px; color: #555;">ID</th>
+                <th style="padding: 12px; color: #555;">SID</th>
                 <th style="padding: 12px; color: #555;">Sample Code</th>
                 <th style="padding: 12px; color: #555;">Tissue Type</th>
                 <th style="padding: 12px; color: #555;">Stain Type</th>
                 <th style="padding: 12px; color: #555;">Location</th>
+                <th style="padding: 12px; color: #555;">IMID</th>
+                <th style="padding: 12px; color: #555;">รูปภาพ</th>
                 <th style="padding: 12px; color: #555; text-align: center;">จัดการ</th>
             </tr>
         </thead>
         <tbody>
             {% for s in slides %}
+            
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 12px; color: #777;">{{ s.slide_id }}</td>
                 <td style="padding: 12px; font-weight: bold; color: #333;">{{ s.sample_code }}</td>
                 <td style="padding: 12px; color: #555;">{{ s.tissue_type }}</td>
                 <td style="padding: 12px; color: #555;">{{ s.stain_type }}</td>
                 <td style="padding: 12px; color: #555;">{{ s.location }}</td>
+                <td style="padding: 12px; color: #777;">
+                    {% if s.images.first %}
+                        {{ s.images.first.image_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="padding: 12px;">
+                    {% if s.images.first %}
+                        <img src="{{ s.images.first.image_url }}" alt="Slide Image" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;">
+                    {% else %}
+                        <span style="color: #999; font-size: 12px;">ไม่มีรูปภาพ</span>
+                    {% endif %}
+                </td>
+                
                 <td style="padding: 12px; text-align: center;">
                     <button onclick="openSlideModal('{{ s.slide_id }}', '{{ s.sample_code|escapejs }}', '{{ s.tissue_type|escapejs }}', '{{ s.stain_type|escapejs }}', '{{ s.location|escapejs }}')" 
                             class="btn-pill" style="background: #007bff; color: white; border: none; cursor: pointer; margin-right: 5px;">Edit</button>
@@ -50,11 +68,10 @@
             
             <h3 id="modalTitle" style="margin-top: 0; color: #333; margin-bottom: 20px;">เพิ่มสไลด์ใหม่</h3>
             
-            <form method="POST" action="{% url 'save_slide' %}">
+            <form method="POST" action="{% url 'save_slide' %}" enctype="multipart/form-data">
                 {% csrf_token %}
-                
                 <input type="hidden" id="slide_id" name="slide_id" value="">
-                
+
                 <div style="margin-bottom: 15px;">
                     <label style="font-weight: 600; color: #555; display: block; margin-bottom: 5px;">Sample Code:</label>
                     <input type="text" id="sample_code" name="sample_code" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
@@ -73,6 +90,21 @@
                 <div style="margin-bottom: 25px;">
                     <label style="font-weight: 600; color: #555; display: block; margin-bottom: 5px;">Location:</label>
                     <input type="text" id="location" name="location" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; color: #555; display: block; margin-bottom: 5px;">กำลังขยาย (Magnification):</label>
+                    <select id="magnification" name="magnification" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px; background: #f9f9f9;">
+                        <option value="1">1x</option>
+                        <option value="4">4x</option>
+                        <option value="10">10x</option>
+                        <option value="40" selected>40x</option> <option value="100">100x</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="font-weight: 600; color: #555; display: block; margin-bottom: 5px;">รูปภาพสไลด์ (Image):</label>
+                    <input type="file" id="slide_image" name="slide_image" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 6px; background: #f9f9f9;">
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
