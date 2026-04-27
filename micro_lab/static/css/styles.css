@@ -181,6 +181,12 @@ body {
     border-bottom: 2px solid black;
 }
 
+.nav-link.active {
+    color: #000;
+    font-weight: bold; /* ตัวหนา */
+    border-bottom: 2px solid #000; /* ขีดเส้นใต้สีดำเข้ม */
+}
+
 .profile-section {
     display: flex;
     align-items: center;

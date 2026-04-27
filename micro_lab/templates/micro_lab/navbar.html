@@ -5,8 +5,15 @@
         <a href="{% url 'all_slides' %}" class="{% if request.resolver_match.url_name == 'all_slides' %}active{% endif %}">Slides</a>
         
         {% if user.is_staff %}
-            <a href="{% url 'dashboard' %}" class="admin-link">Dashboard</a>
-            <a href="{% url 'labadmin' %}" class="admin-link">Admin</a>
+            <a href="{% url 'dashboard' %}" 
+            class="admin-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            Dashboard
+            </a>
+            
+            <a href="{% url 'labadmin' %}" 
+            class="admin-link {% if request.resolver_match.url_name == 'labadmin' %}active{% endif %}">
+            Admin
+            </a>
         {% endif %}
     </nav>
 
