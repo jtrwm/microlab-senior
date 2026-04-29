@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.db import transaction
-from .models import Station, Booking, User, Slide
+from .models import Station, Booking, User, Slide, SlideImage
 from django.utils import timezone
 import datetime
 import calendar
@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required 
 from .forms import RegisterForm
 from django.core.paginator import Paginator
+from django.core.files.storage import default_storage
 
 def get_processed_stations(selected_pk=None):
     """
@@ -385,12 +386,26 @@ def api_get_booked_slots(request):
 @login_required
 def booking_complete(request, booking_id):
     try:
-        booking = Booking.objects.get(booking_id=booking_id)
+        # ดึงข้อมูลแค่รอบเดียวพอครับ (ลบบรรทัดที่ซ้ำออก)
         booking_obj = Booking.objects.get(booking_id=booking_id)
+        
+        # 1. จัดการชื่อสถานี
         station_obj = Station.objects.get(station_id=booking_obj.station_id)
         booking_obj.station_name = station_obj.station_name
-        # แก้ตรงนี้: เติม micro_lab/ นำหน้าชื่อไฟล์
+        
+        # 🚀 2. จัดการดึงชื่อ Username มาใส่ในตัวแปร username_display
+        uid = getattr(booking_obj, 'user_id', None) or getattr(booking_obj, 'auth_user_id', None)
+        
+        if uid:
+            # หา User จากฐานข้อมูล
+            user_record = User.objects.filter(id=uid).first()
+            booking_obj.username_display = user_record.username if user_record else f"User {uid}"
+        else:
+            # ไม้ตายสุดท้าย: ถ้าใน DB ไม่มี ID ให้ใช้ชื่อคนที่กำลัง Login อยู่เลย
+            booking_obj.username_display = request.user.username
+
         return render(request, 'micro_lab/booking_complete.html', {'booking': booking_obj})
+        
     except (Booking.DoesNotExist, Station.DoesNotExist):
         return render(request, 'micro_lab/404.html')
     
@@ -436,8 +451,6 @@ def all_slides_view(request):
     }
     return render(request, 'micro_lab/all_slides.html', context)
 
-# micro_lab/views.py
-
 def calendar_events(request):
     bookings = Booking.objects.filter(booking_status='CONFIRMED')
     events = []
@@ -479,7 +492,6 @@ def calendar_events(request):
         delta_days = (end_dt.date() - start_dt.date()).days
 
         if delta_days == 0:
-            # จองวันเดียว: St.6: 2:00pm - 4:00pm
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: {start_time_str} - {end_time_str}",
@@ -487,14 +499,12 @@ def calendar_events(request):
                 'end': end_dt.isoformat(),
             })
         else:
-            # วันเริ่ม: St.6: Start 2:00pm -
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: Start {start_time_str} -",
                 'start': start_dt.isoformat(),
                 'end': start_dt.replace(hour=23, minute=59).isoformat(),
             })
-            # วันกลาง
             curr = start_dt.date() + timedelta(days=1)
             while curr < end_dt.date():
                 events.append({
@@ -504,7 +514,6 @@ def calendar_events(request):
                     'allDay': True,
                 })
                 curr += timedelta(days=1)
-            # วันจบ: St.6: Ends 12:00am
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: Ends {end_time_str}",
@@ -514,5 +523,254 @@ def calendar_events(request):
             
     return JsonResponse(events, safe=False)
 
+@login_required
 def dashboard_view(request):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
     return render(request, 'micro_lab/dashboard.html')
+
+@login_required
+def admin_dashboard(request):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
+    all_bookings = Booking.objects.all().order_by('-daystart')
+    
+    now = timezone.now().replace(tzinfo=None)
+    
+    upcoming_bookings = []
+    past_bookings = []
+    cancelled_bookings = []
+    
+    users_map = {str(u.id): u.username for u in User.objects.all()}
+    stations_map = {str(s.pk): s for s in Station.objects.all()}
+    
+    for b in all_bookings:
+        uid = getattr(b, 'user_id', None) or getattr(b, 'auth_user_id', None)
+        uid_str = str(uid).strip() if uid else ""
+        b.username_display = users_map.get(uid_str, f"User {uid_str}")
+
+        s_id = str(b.station_id).strip()
+        station_obj = stations_map.get(s_id)
+        b.station_name = station_obj.station_name if station_obj else "Unknown"
+
+        if b.daystart and b.dayend:
+            b_start = b.daystart.replace(tzinfo=None) if b.daystart.tzinfo else b.daystart
+            b_end = b.dayend.replace(tzinfo=None) if b.dayend.tzinfo else b.dayend
+
+            delta = b_end - b_start
+            b.duration_days = delta.days
+            b.duration_hours = delta.seconds // 3600
+
+            is_upcoming = b_end >= now
+
+            b.daystart = b_start + timedelta(hours=7)
+            b.dayend = b_end + timedelta(hours=7)
+
+            if b.booking_status == 'CANCELLED':
+                cancelled_bookings.append(b)
+            else:
+                is_upcoming = b.dayend >= now
+                if is_upcoming:
+                    upcoming_bookings.append(b)
+                else:
+                    past_bookings.append(b)
+                
+        
+
+    return render(request, 'micro_lab/labadmin.html', {
+        'upcoming_bookings': upcoming_bookings,
+        'past_bookings': past_bookings,
+        'cancelled_bookings': cancelled_bookings
+    })
+    
+def admin_edit_booking(request, booking_id):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        booking = Booking.objects.get(booking_id=booking_id)
+        try:
+            # 🚀 รับค่าวันที่และเวลาใหม่จาก Pop-up
+            # ใช้ %H:%M เพราะ input type="time" ของ HTML จะส่งค่าเป็น 24 ชม. เสมอ
+            start_str = f"{request.POST['start_date']} {request.POST['start_time']}"
+            end_str = f"{request.POST['end_date']} {request.POST['end_time']}"
+            
+            new_start = timezone.make_aware(datetime.datetime.strptime(
+                f"{request.POST['start_date']} {request.POST['start_time']}", "%Y-%m-%d %H:%M"))
+            
+            new_end = timezone.make_aware(datetime.datetime.strptime(
+                f"{request.POST['end_date']} {request.POST['end_time']}", "%Y-%m-%d %H:%M"))
+                # ตรวจสอบการซ้อนทับ
+            overlap = Booking.objects.filter(
+                station_id=booking.station_id,
+                booking_status='CONFIRMED',
+                daystart__lt=new_end,
+                dayend__gt=new_start
+            ).exclude(booking_id=booking.booking_id).exists()
+
+            if overlap:
+                messages.error(request, "ไม่สามารถเปลี่ยนเวลาได้ เนื่องจากทับซ้อนกับการจองอื่น")
+            else:
+                booking.daystart = new_start
+                booking.dayend = new_end
+                booking.save()
+                messages.success(request, "แก้ไขข้อมูลการจองเรียบร้อยแล้ว")
+                
+        except Exception as e:
+            messages.error(request, "เกิดข้อผิดพลาดในการประมวลผลเวลา กรุณาลองใหม่")
+            
+    return redirect('labadmin')
+
+@login_required
+def cancel_booking(request, booking_id): #admin
+    clean_id = str(booking_id).strip()
+    try:
+        booking = Booking.objects.get(booking_id=clean_id)
+        
+        b_uid = getattr(booking, 'user_id', None) or getattr(booking, 'auth_user_id', None)
+        
+        if str(request.user.id) == str(b_uid) or request.user.is_staff:
+            booking.booking_status = 'CANCELLED'
+            booking.save()
+            messages.success(request, "ยกเลิกการจองเรียบร้อยแล้ว")
+        else:
+            messages.error(request, "คุณไม่มีสิทธิ์ยกเลิกการจองรายการนี้")
+            
+    except Booking.DoesNotExist:
+        messages.error(request, "ไม่พบข้อมูลการจอง หรือรายการนี้ถูกลบไปแล้ว")
+    except Exception as e:
+        messages.error(request, "เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่")
+        
+    return redirect('labadmin')
+
+@login_required
+def edit_booking(request, booking_id):
+    booking = Booking.objects.get(booking_id=booking_id)
+    
+    if request.method == 'POST':
+        # รับค่าวันที่และเวลาใหม่จากฟอร์ม
+        new_start = timezone.make_aware(datetime.datetime.strptime(
+            f"{request.POST['start_date']} {request.POST['start_time']}", "%Y-%m-%d %I:%M %p"))
+        new_end = timezone.make_aware(datetime.datetime.strptime(
+            f"{request.POST['end_date']} {request.POST['end_time']}", "%Y-%m-%d %I:%M %p"))
+
+        # ตรวจสอบการซ้อนทับ (ยกเว้นรายการตัวเอง)
+        overlap = Booking.objects.filter(
+            station_id=booking.station_id,
+            booking_status='CONFIRMED',
+            daystart__lt=new_end,
+            dayend__gt=new_start
+        ).exclude(booking_id=booking.booking_id).exists()
+
+        if overlap:
+            messages.error(request, "ไม่สามารถเปลี่ยนเวลาได้ เนื่องจากทับซ้อนกับการจองอื่น")
+        else:
+            booking.daystart = new_start
+            booking.dayend = new_end
+            booking.save()
+            messages.success(request, "แก้ไขข้อมูลการจองเรียบร้อยแล้ว")
+            return redirect('admin_dashboard')
+
+    return render(request, 'micro_lab/edit_booking.html', {'booking': booking})
+
+@login_required
+def admin_slides(request):
+    if not request.user.is_staff:
+        messages.error(request, "คุณไม่มีสิทธิ์เข้าถึงหน้านี้")
+        return redirect('home')
+    
+    # 🚀 แก้จาก 'slide_name' เป็น 'sample_code' (หรือจะใช้ 'slide_id' ก็ได้ครับ)
+    slides = Slide.objects.all().order_by('sample_code')
+    return render(request, 'micro_lab/admin_slides.html', {'slides': slides})
+
+@login_required
+def save_slide(request):
+    if request.method == 'POST' and request.user.is_staff:
+        slide_id = request.POST.get('slide_id', '').strip()
+        sample = request.POST.get('sample_code')
+        tissue = request.POST.get('tissue_type')
+        stain = request.POST.get('stain_type')
+        loc = request.POST.get('location')
+        mag_input = request.POST.get('magnification', '1') # ถ้าไม่มีค่าส่งมา ให้ใช้ 1 เป็นค่าเริ่มต้น
+        try:
+            mag_value = int(mag_input) # แปลงให้เป็นตัวเลข (int4) ตาม Database
+        except ValueError:
+            mag_value = 1 # ถ้า User แอบส่งตัวอักษรมา ให้บังคับกลับเป็น 1 จะได้ไม่ Error
+        uploaded_image = request.FILES.get('slide_image')
+        
+        try:
+            # ================= 1. จัดการข้อมูลสไลด์ (Slide) =================
+            if slide_id:
+                # แก้ไขสไลด์เดิม
+                slide = Slide.objects.get(pk=slide_id)
+                slide.sample_code = sample
+                slide.tissue_type = tissue
+                slide.stain_type = stain
+                slide.location = loc
+                slide.save()
+                msg = "อัปเดตข้อมูลสไลด์เรียบร้อยแล้ว"
+            else:
+                # 🚀 สร้างรหัส S0001, S0002... อัตโนมัติ
+                last_slide = Slide.objects.all().order_by('slide_id').last()
+                if last_slide and last_slide.slide_id.startswith('S'):
+                    try:
+                        last_num = int(last_slide.slide_id[1:]) # ตัดตัว 'S' ออกแล้วแปลงเป็นตัวเลข
+                        new_slide_id = f"S{last_num + 1:04d}"   # บวก 1 แล้วจัดฟอร์แมตให้มี 0 นำหน้า 4 หลัก
+                    except ValueError:
+                        new_slide_id = "S0001"
+                else:
+                    new_slide_id = "S0001"
+
+                slide = Slide.objects.create(
+                    slide_id=new_slide_id,
+                    sample_code=sample,
+                    tissue_type=tissue,
+                    stain_type=stain,
+                    location=loc
+                )
+                msg = "เพิ่มสไลด์ใหม่เรียบร้อยแล้ว"
+
+            # ================= 2. จัดการอัปโหลดรูป (SlideImage) =================
+            if uploaded_image:
+                # สั่งให้ Django อัปโหลดไฟล์ขึ้น Supabase S3 ทันที
+                file_path = f"{uuid.uuid4().hex}_{uploaded_image.name}"
+                saved_path = default_storage.save(file_path, uploaded_image)
+                file_url = default_storage.url(saved_path)
+                
+                last_image = SlideImage.objects.all().order_by('image_id').last()
+                if last_image and last_image.image_id.startswith('IM'):
+                    try:
+                        last_num = int(last_image.image_id[2:]) # ตัดตัว 'IM' ออก
+                        new_image_id = f"IM{last_num + 1:04d}"   # บวก 1 และเติม 0 ให้ครบ 4 หลัก
+                    except ValueError:
+                        new_image_id = "IM0001"
+                else:
+                    new_image_id = "IM0001"
+                    
+                # นำ URL ไปเซฟลงตาราง SlideImage พร้อมกับเชื่อมความสัมพันธ์
+                SlideImage.objects.create(
+                    image_id=new_image_id,
+                    slide=slide, # เชื่อมกับสไลด์ที่เพิ่งสร้าง/แก้ไข ด้านบน
+                    user=request.user, # เชื่อมกับคนที่กำลังอัปโหลด (แอดมิน)
+                    image_url=file_url, # 🚀 เอาลิงก์ URL มาใส่ช่องนี้
+                    magnification=mag_value
+                )
+                msg += " (พร้อมอัปโหลดรูปภาพ)"
+                
+            messages.success(request, msg)
+            
+        except Exception as e:
+            # ดักจับ Error เผื่อมีปัญหาในการอัปโหลด
+            messages.error(request, f"เกิดข้อผิดพลาด: {str(e)}")
+            
+    return redirect('admin_slides')
+
+@login_required
+def delete_slide(request, slide_id):
+    # ... (โค้ดลบข้อมูลเหมือนที่เคยให้ไป) ...
+    return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin

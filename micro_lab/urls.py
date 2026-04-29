@@ -13,4 +13,11 @@ urlpatterns = [
     path('all-slides/', views.all_slides_view, name='all_slides'),
     path('api/calendar-events/', views.calendar_events, name='calendar_events'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('labadmin/', views.admin_dashboard, name='labadmin'), 
+    path('labadmin/cancel/<str:booking_id>/', views.cancel_booking, name='cancel_booking'),
+    path('labadmin/edit_booking/<str:booking_id>/', views.admin_edit_booking, name='edit_booking'),
+    path('labadmin/cancel/<str:booking_id>/', views.cancel_booking, name='cancel_booking'),
+    path('labadmin/admin_slides/', views.admin_slides, name='admin_slides'),
+    path('labadmin/slide/save/', views.save_slide, name='save_slide'),
+    path('labadmin/slide/delete/<str:slide_id>/', views.delete_slide, name='delete_slide'),
 ]

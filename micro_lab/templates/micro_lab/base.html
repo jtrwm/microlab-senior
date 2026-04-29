@@ -11,21 +11,26 @@
     
     <link href="{% static 'css/styles.css' %}" rel="stylesheet"> 
 <main>
-
     <div class="container">
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
         {% block content %}
         {% endblock content %}
-    </div> </main>
-    
+    </div> 
+</main>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+                Swal.fire({
+                    icon: '{% if message.tags == "error" %}error{% else %}success{% endif %}',
+                    title: '{{ message }}',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#3085d6'
+                });
+            {% endfor %}
+        });
+    </script>
+{% endif %}
     </body>
 </html>
