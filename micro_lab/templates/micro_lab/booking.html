@@ -34,7 +34,7 @@
                      onclick="selectStation(this, '{{ station.is_available }}')">
                     
                     <div class="station-image-container">
-                        {% with filename=station.station_name|lower|cut:' '|add:'.jpg' %}
+                        {% with filename=station.station_name|cut:' '|add:'.jpg' %}
                         <img src="{% static 'images/'|add:filename %}" 
                             alt="{{ station.station_name }}" 
                             class="station-image">

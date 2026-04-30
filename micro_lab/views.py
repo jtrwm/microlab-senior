@@ -142,8 +142,13 @@ def home_view(request):
     return render(request, 'micro_lab/home.html', context)
 
 @require_http_methods(["GET", "POST"])
-@login_required
+#@login_required
 def booking_view(request):
+    if not request.user.is_authenticated:
+        messages.error(request, 'กรุณาเข้าสู่ระบบก่อนทำการจอง')
+        # เด้งไปหน้า login (ตรวจสอบชื่อ url ใน urls.py ของคุณว่าชื่อ 'login' หรือไม่)
+        return redirect('login')
+    
     selected_date_str = request.GET.get('date') 
     if selected_date_str:
         target_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
