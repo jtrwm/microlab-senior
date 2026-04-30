@@ -21,7 +21,7 @@
         <div class="station-grid">
             {% for station in stations %}
                 <div class="station-card">
-                    {% with filename=station.station_name|lower|cut:' '|add:'.jpg' %}
+                    {% with filename=station.station_name|cut:' '|add:'.jpg' %}
                     
                         <img src="{% static 'images/'|add:filename %}" 
                             alt="{{ station.station_name }}" 
