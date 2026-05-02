@@ -468,6 +468,18 @@ plt.close()
 # 10. Save Summary
 # ============================================================
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+STATIC_AI_OUTPUT_DIR = os.path.join(
+    BASE_DIR,
+    "micro_lab",
+    "static",
+    "images",
+    "ai_outputs"
+)
+
+os.makedirs(STATIC_AI_OUTPUT_DIR, exist_ok=True)
+
 summary = {
     "model": "RandomForestRegressor + IsolationForest",
     "forecast_mae": mae,

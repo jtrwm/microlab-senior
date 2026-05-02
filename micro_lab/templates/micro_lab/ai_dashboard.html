@@ -296,3 +296,19 @@
     });
 </script>
 {% endblock %}
+
+
+summary_path = os.path.join(AI_OUTPUT_DIR, "model_summary.csv")
+
+if os.path.exists(summary_path):
+    df = pd.read_csv(summary_path)
+
+    context["mae"] = round(float(df["forecast_mae"][0]), 2)
+    context["r2"] = round(float(df["forecast_r2"][0]), 2)
+    context["anomaly_count"] = int(df["anomaly_count"][0])
+    context["total_records"] = int(df["total_records"][0])
+
+    modified_time = os.path.getmtime(summary_path)
+    context["last_run_time"] = datetime.fromtimestamp(modified_time).strftime("%d %b %Y, %H:%M:%S")
+else:
+    context["last_run_time"] = "ยังไม่มีการรันโมเดล"

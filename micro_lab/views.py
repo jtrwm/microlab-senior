@@ -1,19 +1,23 @@
-from django.shortcuts import render, redirect
-from django.db import transaction
-from .models import Station, Booking, User, Slide, SlideImage
-from django.utils import timezone
 import datetime
 import calendar
-from django.views.decorators.http import require_http_methods
-from django.contrib import messages
 import uuid
 import json
+import os
+import time
+import subprocess
+import pandas as pd
+from django.shortcuts import render, redirect
+from django.db import transaction
+from django.utils import timezone
+from django.conf import settings
 from django.http import JsonResponse
-from datetime import date, timedelta
+from django.views.decorators.http import require_http_methods
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required 
-from .forms import RegisterForm
 from django.core.paginator import Paginator
 from django.core.files.storage import default_storage
+from .forms import RegisterForm
+from .models import Station, Booking, User, Slide, SlideImage
 
 def get_processed_stations(selected_pk=None):
     """
@@ -153,7 +157,7 @@ def booking_view(request):
     if selected_date_str:
         target_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
     else:
-        target_date = datetime.date.today()
+         target_date = datetime.date.today()
 
     # 2. จากนั้นค่อยเอา target_date ไป Filter การจอง
     # ถ้าคุณเอาบรรทัดนี้ไปไว้ข้างบนสุด มันจะดึงของ "วันนี้" ตลอดเวลา
@@ -278,7 +282,7 @@ def booking_view(request):
     if selected_date_str:
         target_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
     else:
-        target_date = datetime.date.today()
+         target_date = datetime.date.today()
         
     #stations = get_processed_stations() # เรียกใช้ฟังก์ชันที่ปรับปรุงแล้ว
     #available_stations = stations # ใช้ชื่อตัวแปรให้ชัดเจน
@@ -510,7 +514,10 @@ def calendar_events(request):
                 'start': start_dt.isoformat(),
                 'end': start_dt.replace(hour=23, minute=59).isoformat(),
             })
-            curr = start_dt.date() + timedelta(days=1)
+            
+            # 🚀 แก้ไขตรงนี้: เติม datetime. นำหน้า timedelta
+            curr = start_dt.date() + datetime.timedelta(days=1)
+            
             while curr < end_dt.date():
                 events.append({
                     **common_data,
@@ -518,7 +525,9 @@ def calendar_events(request):
                     'start': curr.isoformat(),
                     'allDay': True,
                 })
-                curr += timedelta(days=1)
+                # 🚀 แก้ไขตรงนี้: เติม datetime. นำหน้า timedelta ด้วย
+                curr += datetime.timedelta(days=1)
+                
             events.append({
                 **common_data,
                 'title': f"St.{s_id}: Ends {end_time_str}",
@@ -572,8 +581,8 @@ def admin_dashboard(request):
 
             is_upcoming = b_end >= now
 
-            b.daystart = b_start + timedelta(hours=7)
-            b.dayend = b_end + timedelta(hours=7)
+            b.daystart = b_start + datetime.timedelta(hours=7)
+            b.dayend = b_end + datetime.timedelta(hours=7)
 
             if b.booking_status == 'CANCELLED':
                 cancelled_bookings.append(b)
@@ -779,18 +788,16 @@ def save_slide(request):
 def delete_slide(request, slide_id):
     # ... (โค้ดลบข้อมูลเหมือนที่เคยให้ไป) ...
     return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin
-
-import os
-import time
-import subprocess
-import pandas as pd
-from datetime import datetime
-from django.conf import settings
-from django.shortcuts import render, redirect
-from django.contrib import messages
+    return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin
 
 BASE_DIR = settings.BASE_DIR
-AI_OUTPUT_DIR = os.path.join(BASE_DIR, "static", "ai_outputs")
+AI_OUTPUT_DIR = os.path.join(
+    settings.BASE_DIR,
+    "micro_lab",
+    "static",
+    "images",
+    "ai_outputs"
+)
 AI_SCRIPT_PATH = os.path.join(BASE_DIR, "AI", "Final_AI.py")
 
 
@@ -808,7 +815,7 @@ def ai_dashboard(request):
         context["total_records"] = int(df["total_records"][0])
 
         modified_time = os.path.getmtime(summary_path)
-        context["last_run_time"] = datetime.fromtimestamp(modified_time).strftime("%d %b %Y, %H:%M:%S")
+        context["last_run_time"] = datetime.datetime.fromtimestamp(modified_time).strftime("%d %b %Y, %H:%M:%S")
 
     else:
         context["last_run_time"] = "ยังไม่มีการรันโมเดล"
