@@ -20,4 +20,6 @@ urlpatterns = [
     path('labadmin/admin_slides/', views.admin_slides, name='admin_slides'),
     path('labadmin/slide/save/', views.save_slide, name='save_slide'),
     path('labadmin/slide/delete/<str:slide_id>/', views.delete_slide, name='delete_slide'),
+    path('ai-dashboard/', views.ai_dashboard, name='ai_dashboard'),
+    path('run-ai/', views.run_ai, name='run_ai'),
 ]

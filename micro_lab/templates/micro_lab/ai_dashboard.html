@@ -1,0 +1,298 @@
+{% extends "micro_lab/base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    .ai-page {
+        padding: 40px 42px;
+        background: #f7f8fc;
+        min-height: calc(100vh - 80px);
+    }
+
+    .ai-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 28px;
+    }
+
+    .ai-breadcrumb {
+        margin: 0 0 8px;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .ai-title {
+        margin: 0;
+        font-size: 40px;
+        font-weight: 700;
+        color: #1f2430;
+    }
+
+    .ai-subtitle {
+        margin: 10px 0 0;
+        color: #5f6675;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+
+    .run-panel {
+        background: #ffffff;
+        padding: 18px 20px;
+        border-radius: 18px;
+        border: 1px solid #e7eaf0;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        min-width: 300px;
+    }
+
+    .last-run {
+        margin: 0 0 14px;
+        color: #4b5563;
+        font-size: 14px;
+    }
+
+    .run-ai-btn {
+        width: 100%;
+        padding: 13px 18px;
+        border: none;
+        border-radius: 13px;
+        background: #16a34a;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .run-ai-btn:hover {
+        background: #15803d;
+        transform: translateY(-1px);
+    }
+
+    .loading-box {
+        display: none;
+        margin-top: 14px;
+    }
+
+    .loading-text {
+        margin: 0 0 8px;
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .loading-bar {
+        width: 100%;
+        height: 9px;
+        background: #e5e7eb;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .loading-progress {
+        width: 0%;
+        height: 100%;
+        background: #16a34a;
+        border-radius: 999px;
+        animation: loadingMove 2s infinite;
+    }
+
+    @keyframes loadingMove {
+        0% { width: 0%; }
+        50% { width: 75%; }
+        100% { width: 100%; }
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 18px;
+        margin-bottom: 28px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 22px;
+        border: 1px solid #e7eaf0;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .kpi-label {
+        margin: 0 0 10px;
+        color: #6b7280;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .kpi-value {
+        margin: 0;
+        color: #1f2430;
+        font-size: 34px;
+        font-weight: 700;
+    }
+
+    .graph-section {
+        background: #ffffff;
+        border-radius: 22px;
+        padding: 24px;
+        border: 1px solid #e7eaf0;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .section-title {
+        margin: 0 0 20px;
+        font-size: 24px;
+        color: #1f2430;
+    }
+
+    .graph-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(320px, 1fr));
+        gap: 22px;
+    }
+
+    .graph-card {
+        border: 1px solid #edf0f5;
+        border-radius: 18px;
+        padding: 16px;
+        background: #fbfcff;
+    }
+
+    .graph-card h4 {
+        margin: 0 0 12px;
+        color: #1f2430;
+        font-size: 16px;
+    }
+
+    .graph-card img {
+        width: 100%;
+        border-radius: 12px;
+        background: white;
+    }
+
+    .message-box {
+        margin-bottom: 18px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: #ecfdf5;
+        color: #166534;
+        font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+        .ai-header {
+            flex-direction: column;
+        }
+
+        .run-panel {
+            width: 100%;
+        }
+
+        .kpi-grid,
+        .graph-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="ai-page">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message-box">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="ai-header">
+        <div>
+            <p class="ai-breadcrumb">AI / Resource Management</p>
+            <h1 class="ai-title">AI Resource Prediction Dashboard</h1>
+            <p class="ai-subtitle">
+                Forecast chemical demand, evaluate shortage risk, and detect unusual usage patterns from laboratory data.
+            </p>
+        </div>
+
+        <div class="run-panel">
+            <p class="last-run">
+                <strong>Last run:</strong> {{ last_run_time }}
+            </p>
+
+            <form id="run-ai-form" action="{% url 'run_ai' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="run-ai-btn">
+                    Run AI Model
+                </button>
+
+                <div id="loading-box" class="loading-box">
+                    <p class="loading-text">Running AI model... please wait</p>
+                    <div class="loading-bar">
+                        <div class="loading-progress"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <p class="kpi-label">MAE</p>
+            <p class="kpi-value">{{ mae|default:"-" }}</p>
+        </div>
+
+        <div class="kpi-card">
+            <p class="kpi-label">R² Score</p>
+            <p class="kpi-value">{{ r2|default:"-" }}</p>
+        </div>
+
+        <div class="kpi-card">
+            <p class="kpi-label">Anomalies</p>
+            <p class="kpi-value">{{ anomaly_count|default:"-" }}</p>
+        </div>
+
+        <div class="kpi-card">
+            <p class="kpi-label">Total Records</p>
+            <p class="kpi-value">{{ total_records|default:"-" }}</p>
+        </div>
+    </div>
+
+    <div class="graph-section">
+        <h2 class="section-title">AI Analysis Results</h2>
+
+        <div class="graph-grid">
+            <div class="graph-card">
+                <h4>Actual vs Predicted Chemical Usage</h4>
+                <img src="{% static 'images/ai_outputs/actual_vs_predicted_chemical_usage.png' %}?t={{ timestamp }}">
+            </div>
+
+            <div class="graph-card">
+                <h4>Feature Importance</h4>
+                <img src="{% static 'images/ai_outputs/feature_importance_chemical_forecast.png' %}?t={{ timestamp }}">
+            </div>
+
+            <div class="graph-card">
+                <h4>Predicted Demand Next 7 Days</h4>
+                <img src="{% static 'images/ai_outputs/predicted_demand_next_7_days.png' %}?t={{ timestamp }}">
+            </div>
+
+            <div class="graph-card">
+                <h4>Chemical Shortage Risk</h4>
+                <img src="{% static 'images/ai_outputs/chemical_shortage_risk_count.png' %}?t={{ timestamp }}">
+            </div>
+
+            <div class="graph-card">
+                <h4>Chemical Usage Anomaly Detection</h4>
+                <img src="{% static 'images/ai_outputs/chemical_usage_anomaly_detection.png' %}?t={{ timestamp }}">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("run-ai-form");
+    const loadingBox = document.getElementById("loading-box");
+
+    form.addEventListener("submit", function () {
+        loadingBox.style.display = "block";
+    });
+</script>
+{% endblock %}

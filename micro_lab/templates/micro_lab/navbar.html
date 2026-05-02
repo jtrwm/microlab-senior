@@ -9,7 +9,7 @@
             class="admin-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
             Dashboard
             </a>
-            
+            <a href="{% url 'ai_dashboard' %}" class="{% if request.resolver_match.url_name == 'ai_dashboard' %}active{% endif %}">AI Dashboard</a>
             <a href="{% url 'labadmin' %}" 
             class="admin-link {% if request.resolver_match.url_name == 'labadmin' %}active{% endif %}">
             Admin

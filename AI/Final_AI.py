@@ -370,6 +370,9 @@ print(anomaly_df["anomaly_label"].value_counts())
 # 9. Graphs
 # ============================================================
 
+STATIC_AI_OUTPUT_DIR = "static/images/ai_outputs"
+os.makedirs(STATIC_AI_OUTPUT_DIR, exist_ok=True)
+
 # Graph 1: Actual vs Predicted
 result_df = pd.DataFrame({
     "Actual": y_test,
@@ -382,7 +385,7 @@ plt.title("Actual vs Predicted Chemical Usage")
 plt.xlabel("Actual Usage")
 plt.ylabel("Predicted Usage")
 plt.tight_layout()
-plt.savefig("ai_outputs/actual_vs_predicted_chemical_usage.png", dpi=300)
+plt.savefig(f"{STATIC_AI_OUTPUT_DIR}/actual_vs_predicted_chemical_usage.png", dpi=300)
 plt.close()
 
 
@@ -398,7 +401,7 @@ plt.title("Feature Importance for Chemical Demand Forecasting")
 plt.xlabel("Importance")
 plt.ylabel("Feature")
 plt.tight_layout()
-plt.savefig("ai_outputs/feature_importance_chemical_forecast.png", dpi=300)
+plt.savefig(f"{STATIC_AI_OUTPUT_DIR}/feature_importance_chemical_forecast.png", dpi=300)
 plt.close()
 
 
@@ -424,7 +427,7 @@ plt.xlabel("Date")
 plt.ylabel("Predicted Usage")
 plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig("ai_outputs/predicted_demand_next_7_days.png", dpi=300)
+plt.savefig(f"{STATIC_AI_OUTPUT_DIR}/predicted_demand_next_7_days.png", dpi=300)
 plt.close()
 
 
@@ -440,7 +443,7 @@ if not risk_df.empty:
     plt.xlabel("Risk Level")
     plt.ylabel("Number of Inventory Items")
     plt.tight_layout()
-    plt.savefig("ai_outputs/chemical_shortage_risk_count.png", dpi=300)
+    plt.savefig(f"{STATIC_AI_OUTPUT_DIR}/chemical_shortage_risk_count.png", dpi=300)
     plt.close()
 
 
@@ -457,7 +460,7 @@ plt.xlabel("Usage Date")
 plt.ylabel("Value Use")
 plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig("ai_outputs/chemical_usage_anomaly_detection.png", dpi=300)
+plt.savefig(f"{STATIC_AI_OUTPUT_DIR}/chemical_usage_anomaly_detection.png", dpi=300)
 plt.close()
 
 
@@ -475,7 +478,7 @@ summary = {
 }
 
 summary_df = pd.DataFrame([summary])
-summary_df.to_csv("ai_outputs/model_summary.csv", index=False)
+summary_df.to_csv(f"{STATIC_AI_OUTPUT_DIR}/model_summary.csv", index=False)
 
 print("\nAll AI processes completed successfully.")
 print("Saved models in: ai_models/")

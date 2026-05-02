@@ -779,3 +779,55 @@ def save_slide(request):
 def delete_slide(request, slide_id):
     # ... (โค้ดลบข้อมูลเหมือนที่เคยให้ไป) ...
     return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin
+
+import os
+import time
+import subprocess
+import pandas as pd
+from datetime import datetime
+from django.conf import settings
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
+BASE_DIR = settings.BASE_DIR
+AI_OUTPUT_DIR = os.path.join(BASE_DIR, "static", "ai_outputs")
+AI_SCRIPT_PATH = os.path.join(BASE_DIR, "AI", "Final_AI.py")
+
+
+def ai_dashboard(request):
+    context = {}
+
+    summary_path = os.path.join(AI_OUTPUT_DIR, "model_summary.csv")
+
+    if os.path.exists(summary_path):
+        df = pd.read_csv(summary_path)
+
+        context["mae"] = round(df["forecast_mae"][0], 2)
+        context["r2"] = round(df["forecast_r2"][0], 2)
+        context["anomaly_count"] = int(df["anomaly_count"][0])
+        context["total_records"] = int(df["total_records"][0])
+
+        modified_time = os.path.getmtime(summary_path)
+        context["last_run_time"] = datetime.fromtimestamp(modified_time).strftime("%d %b %Y, %H:%M:%S")
+
+    else:
+        context["last_run_time"] = "ยังไม่มีการรันโมเดล"
+
+    context["timestamp"] = int(time.time())
+
+    return render(request, "micro_lab/ai_dashboard.html", context)
+
+
+def run_ai(request):
+    if request.method == "POST":
+        try:
+            subprocess.run(
+                ["python3", AI_SCRIPT_PATH],
+                check=True,
+                cwd=BASE_DIR
+            )
+            messages.success(request, "AI model has been updated successfully.")
+        except Exception as e:
+            messages.error(request, f"AI model failed: {e}")
+
+    return redirect("ai_dashboard")
