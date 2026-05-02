@@ -1,2 +1,0 @@
-model,forecast_mae,forecast_r2,total_records,daily_demand_records,anomaly_count
-RandomForestRegressor + IsolationForest,5.894297255298583,0.6845295330661245,300,298,15
