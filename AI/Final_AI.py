@@ -415,21 +415,36 @@ top_inv = (
 plot_future = future_7days[future_7days["inv_id"].isin(top_inv)]
 
 plt.figure(figsize=(12, 6))
-sns.lineplot(
+ax = sns.lineplot(
     data=plot_future,
     x="date",
     y="predicted_usage",
     hue="inv_id",
     marker="o"
 )
+
 plt.title("Predicted Chemical Demand for Next 7 Days")
 plt.xlabel("Date")
 plt.ylabel("Predicted Usage")
 plt.xticks(rotation=45)
-plt.tight_layout()
-plt.savefig(f"{STATIC_AI_OUTPUT_DIR}/predicted_demand_next_7_days.png", dpi=300)
-plt.close()
 
+# ย้าย legend ออกไปด้านขวานอกกราฟ
+plt.legend(
+    title="inv_id",
+    loc="upper left",
+    bbox_to_anchor=(1.02, 1),
+    borderaxespad=0
+)
+
+# เว้นพื้นที่ด้านขวาไว้ให้ legend
+plt.tight_layout(rect=[0, 0, 0.85, 1])
+
+plt.savefig(
+    f"{STATIC_AI_OUTPUT_DIR}/predicted_demand_next_7_days.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+plt.close()
 
 # Graph 4: Shortage Risk Count
 if not risk_df.empty:
