@@ -22,4 +22,5 @@ urlpatterns = [
     path('labadmin/slide/delete/<str:slide_id>/', views.delete_slide, name='delete_slide'),
     path('ai-dashboard/', views.ai_dashboard, name='ai_dashboard'),
     path('run-ai/', views.run_ai, name='run_ai'),
+    #path('profile/', views.profile, name='profile'),
 ]
