@@ -19,40 +19,8 @@ from django.core.files.storage import default_storage
 from .forms import RegisterForm
 from .models import Station, Booking, User, Slide, SlideImage
 
-def get_processed_stations(selected_pk=None):
-    """
-    ดึงข้อมูลสถานีทั้งหมด และเพิ่ม Attribute สถานะ/สี สำหรับ Template
-    """
-    # ** แก้ปัญหา N+1 Query: ดึงข้อมูลที่จำเป็นล่วงหน้า **
-    # ถ้า Station มี FK ชี้ไปที่ตารางอื่น ควรใช้ select_related
-    stations_qs = Station.objects.all()
-    
-    processed_stations = []
-    
-    for station in stations_qs:
-        # กำหนดสถานะ Available/Not Available และสี ตาม Logic จำลอง
-        # (สมมติว่า Station 5, 6 ไม่ว่าง)
-        if station.pk in [5, 6]: 
-            station.status_text = 'Not Available'
-            station.status_color = 'not-available-text' # Class ใน booking.css
-            station.is_available = False
-        else:
-            station.status_text = 'Available'
-            station.status_color = 'available-text' # Class ใน booking.css
-            station.is_available = True
-            
-        # กำหนดสถานะถูกเลือก
-        if selected_pk and station.pk == selected_pk:
-            station.is_selected = True
-        else:
-            station.is_selected = False
-        
-        processed_stations.append(station)
-        
-    return processed_stations
-
 def home_view(request):  
-    # ตั้งค่าเดือน/ปีเป้าหมาย (ใช้เดือนปัจจุบันหากต้องการให้เป็น Dynamic)
+    # ตั้งค่าเดือน/ปี
     today = datetime.date.today()
     try:
         target_year = int(request.GET.get('year', today.year))
@@ -60,7 +28,6 @@ def home_view(request):
     except ValueError:
         target_year = today.year
         target_month = today.month
-    # เดือนก่อนหน้า
     if target_month == 1:
         prev_month = 12
         prev_year = target_year - 1
@@ -68,7 +35,6 @@ def home_view(request):
         prev_month = target_month - 1
         prev_year = target_year
 
-    # เดือนถัดไป
     if target_month == 12:
         next_month = 1
         next_year = target_year + 1
@@ -85,15 +51,13 @@ def home_view(request):
         booking_status='CONFIRMED'
     ).order_by('station_id', 'daystart')
     
-    # 4. จัดกลุ่มการจองลงใน Dictionary โดยใช้ 'วันที่' เป็น Key
-    # โครงสร้าง: { 21: [booking1, booking2], 22: [...] }
     bookings_by_day = {}
     for b in bookings_qs:
         day = b.reservation_date.day
         if day not in bookings_by_day:
             bookings_by_day[day] = []
         
-        # จัดฟอร์แมตเวลาให้สั้นลง (เช่น 01:00 PM -> 1 PM)
+        # จัดฟอร์แมตเวลา
         start_t = b.daystart.strftime('%I:%M %p').lstrip('0').lower()
         end_t = b.dayend.strftime('%I:%M %p').lstrip('0').lower()
         
@@ -106,7 +70,6 @@ def home_view(request):
     cal = calendar.Calendar(firstweekday=calendar.SUNDAY)
     month_calendar = cal.monthdays2calendar(target_year, target_month)
     
-    # สร้างข้อมูลวันที่พร้อมสถานะสำหรับ Template
     calendar_data = []
     
     for week in month_calendar:
@@ -115,7 +78,6 @@ def home_view(request):
             if day == 0:
                 week_data.append({'day': '', 'status': 'empty', 'bookings': []})
             else:
-                # ดึงรายการจองของวันนั้นๆ มาจาก Dictionary ที่เราเตรียมไว้
                 daily_bookings = bookings_by_day.get(day, [])
                 
                 status = 'available'
@@ -126,7 +88,7 @@ def home_view(request):
                     'day': day, 
                     'status': status, 
                     'weekday': weekday,
-                    'bookings': daily_bookings # 🚀 ส่ง List ของการจองไปให้หน้า Home
+                    'bookings': daily_bookings 
                 })
         calendar_data.append(week_data)
 
@@ -142,7 +104,6 @@ def home_view(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return render(request, 'micro_lab/calendar_partial.html', context)
     
-    # ถ้าเป็นการเข้าหน้าเว็บปกติ ให้ส่งหน้าเต็มไป
     return render(request, 'micro_lab/home.html', context)
 
 @require_http_methods(["GET", "POST"])
@@ -150,7 +111,6 @@ def home_view(request):
 def booking_view(request):
     if not request.user.is_authenticated:
         messages.error(request, 'กรุณาเข้าสู่ระบบก่อนทำการจอง')
-        # เด้งไปหน้า login (ตรวจสอบชื่อ url ใน urls.py ของคุณว่าชื่อ 'login' หรือไม่)
         return redirect('login')
     
     selected_date_str = request.GET.get('date') 
@@ -159,14 +119,11 @@ def booking_view(request):
     else:
          target_date = datetime.date.today()
 
-    # 2. จากนั้นค่อยเอา target_date ไป Filter การจอง
-    # ถ้าคุณเอาบรรทัดนี้ไปไว้ข้างบนสุด มันจะดึงของ "วันนี้" ตลอดเวลา
     existing_bookings = Booking.objects.filter(
-        reservation_date=target_date, # ต้องใช้ตัวแปรที่รับมาจากด้านบน
+        reservation_date=target_date,
         booking_status='CONFIRMED'
     )
     
-    # --- 1. จัดการ POST Request (บันทึกข้อมูล) ---
     if request.method == 'POST':
         try:
             # 1. Debug: ตรวจสอบว่า POST Request ถูกรับค่า
@@ -179,7 +136,6 @@ def booking_view(request):
             start_time_str = request.POST.get('start_time')     
             end_date_str = request.POST.get('end_date')         
             end_time_str = request.POST.get('end_time')         
-            # is_all_day = request.POST.get('is_all_day') == 'true'
 
             # 3. ดึง Station Object
             selected_station = Station.objects.get(pk=station_id)
@@ -194,7 +150,6 @@ def booking_view(request):
             start_datetime = datetime.datetime.strptime(start_datetime_str, f"{DATE_FORMAT} {TIME_FORMAT}")
             end_datetime = datetime.datetime.strptime(end_datetime_str, f"{DATE_FORMAT} {TIME_FORMAT}")
 
-            # ทำให้เป็น Aware Datetime เพื่อลด RuntimeWarning
             start_datetime = timezone.make_aware(start_datetime)
             end_datetime = timezone.make_aware(end_datetime)
 
@@ -203,12 +158,10 @@ def booking_view(request):
                 raise ValueError("เวลาเริ่มต้นต้องมาก่อนเวลาสิ้นสุด")
             
             overlapping_bookings = Booking.objects.filter(
-                station_id=selected_station.pk,      # 1. เช็คเฉพาะ Station ที่เลือก
-                booking_status='CONFIRMED',          # 2. เช็คเฉพาะรายการที่ยืนยันแล้ว
+                station_id=selected_station.pk,     
+                booking_status='CONFIRMED',     
                 
-                # 3. สูตรเช็คเวลาชน (Overlap Logic)
-                # "เวลาเริ่มของเรา ต้องมาก่อนเวลาจบของเขา" และ "เวลาจบของเรา ต้องมาหลังเวลาเริ่มของเขา"
-                # ถ้าเงื่อนไขนี้เป็นจริง แสดงว่าช่วงเวลาซ้อนทับกัน
+                # 3. Overlap Logic
                 daystart__lt=end_datetime, 
                 dayend__gt=start_datetime
             )
@@ -221,7 +174,7 @@ def booking_view(request):
             booking_pk = str(uuid.uuid4())
             
             if request.user.is_authenticated:
-                user_pk = request.user.id  # ส่ง ID จริง (เช่น 1, 2, 5)
+                user_pk = request.user.id  #
             else:
                 user_pk = 1  
             
@@ -230,7 +183,7 @@ def booking_view(request):
             print(f"DEBUG: Booking ID type: {type(booking_pk)}")
             print(f"DEBUG: Station ID type: {type(selected_station.pk)} Value: {selected_station.pk}")
             print(f"DEBUG: User ID type: {type(user_pk)} Value: {user_pk}")
-            # 7. บันทึกลง Database ด้วย Transaction
+            # 7. บันทึกลง Database 
             with transaction.atomic():
                 print(f"DEBUG POST START: {start_date_str}")
                 print(f"DEBUG POST END: {end_date_str}")
@@ -238,21 +191,15 @@ def booking_view(request):
                     booking_id=booking_pk, 
                     station_id=selected_station.pk, 
                     
-                    # ส่ง user_pk ที่เป็นตัวเลข (Integer) ไป
                     user_id=user_pk,           
                     
                     booking_status=booking_status_default,
                     daystart=start_datetime,
                     dayend=end_datetime,
                     
-                    # ส่งให้ครบ 2 วันที่
                     reservation_date=start_datetime.date(), 
                     booking_date=datetime.date.today(), 
                 )
-                
-                # เปลี่ยนสถานะ Station (ถ้าต้องการ)
-                # selected_station.current_status = 'Unavailable'
-                # selected_station.save()
 
             # 8. แจ้งเตือนและ Redirect
             print("--- SAVE SUCCESSFUL ---")
@@ -272,29 +219,26 @@ def booking_view(request):
             print(f"Error Type: {type(e).__name__}")
             print(f"Error Message: {e}")
             print("Traceback:")
-            print(traceback.format_exc()) # บรรทัดนี้จะบอกจุดตาย
+            print(traceback.format_exc()) 
             print("-------------------------------------------")
             messages.error(request, f"เกิดข้อผิดพลาด: {str(e)}")
             return redirect('booking_url_name')
             
-    # --- 2. จัดการ GET Request (แสดงหน้าเว็บ) ---
+    # หน้าเว็บ
     selected_date_str = request.GET.get('date') 
     if selected_date_str:
         target_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
     else:
          target_date = datetime.date.today()
         
-    #stations = get_processed_stations() # เรียกใช้ฟังก์ชันที่ปรับปรุงแล้ว
-    #available_stations = stations # ใช้ชื่อตัวแปรให้ชัดเจน
     stations_list = get_processed_stations(target_date=target_date)
     
-    # 1. ดึงรายการจองที่ยืนยันแล้วของ "วันที่เลือก" เท่านั้น
+    # 1. รายการจองที่ยืนยันแล้ว
     existing_bookings = Booking.objects.filter(
         reservation_date=target_date,
         booking_status='CONFIRMED'
     )
-
-    # 2. แปลงเป็น List เพื่อส่งให้ JavaScript
+    
     booked_slots = []
     for b in existing_bookings:
         start_dt = b.daystart
@@ -316,7 +260,7 @@ def booking_view(request):
             'end': local_end.strftime('%I:%M %p')
     })
     
-    # ส่ง error_message (ถ้ามีจาก catch block ด้านบน แต่ปกติ redirect จะทำงานก่อน)
+    # ส่ง error_message 
     context = {
         'stations': stations_list,
         'booked_slots_json': json.dumps(booked_slots),
@@ -431,33 +375,42 @@ def register(request):
     return render(request, 'micro_lab/register.html', {'form': form})
 
 def all_slides_view(request):
-    slide_list = Slide.objects.prefetch_related('images').all()
+    # 1. รับค่า per_page (โชว์หน้าละกี่อัน)
     per_page = request.GET.get('per_page', 10)
     try:
         per_page = int(per_page)
     except ValueError:
         per_page = 10
-    selected_category = request.GET.get('category', '')
-    slides_query = Slide.objects.prefetch_related('images').all()
-    if selected_category:
-        slides_query = slides_query.filter(tissue_type=selected_category)
-    categories = Slide.objects.values_list('tissue_type', flat=True).distinct()
+        
+    # 2. รับค่า category ที่ต้องการกรอง
+    selected_category = request.GET.get('category', '').strip()
     
-    paginator = Paginator(slide_list, per_page)
+    # 3. ดึงข้อมูลทั้งหมดมาเป็นตัวตั้งต้น (รวมรูปภาพ และเรียงลำดับ)
+    slides_query = Slide.objects.prefetch_related('images').all().order_by('slide_id')
+    
+    # 4. กรองข้อมูล (ถ้ามีการเลือก Dropdown)
+    if selected_category:
+        slides_query = slides_query.filter(tissue_type__icontains=selected_category)
+        
+    # 5. ดึงรายชื่อหมวดหมู่ทั้งหมดสำหรับทำ Dropdown
+    categories = Slide.objects.exclude(tissue_type__isnull=True).values_list('tissue_type', flat=True).distinct()
+    
+    # 6. แบ่งหน้า (Pagination) โดยใช้ตัวแปร slides_query ที่กรองแล้ว!
+    paginator = Paginator(slides_query, per_page)
     page_number = request.GET.get('page')
     slides = paginator.get_page(page_number)
-    total_results = paginator.count
-    start_index = slides.start_index()
-    end_index = slides.end_index()
+    
+    # 7. ส่งข้อมูลไปที่หน้า HTML
     context = {
         'slides': slides,
         'categories': categories,
         'selected_category': selected_category,
-        'per_page': int(per_page),
+        'per_page': per_page,
         'total_results': paginator.count,
-        'start_index': slides.start_index() if slides else 0,
-        'end_index': slides.end_index() if slides else 0,
+        'start_index': slides.start_index() if slides.paginator.count > 0 else 0,
+        'end_index': slides.end_index() if slides.paginator.count > 0 else 0,
     }
+    
     return render(request, 'micro_lab/all_slides.html', context)
 
 def calendar_events(request):
@@ -787,8 +740,7 @@ def save_slide(request):
 @login_required
 def delete_slide(request, slide_id):
     # ... (โค้ดลบข้อมูลเหมือนที่เคยให้ไป) ...
-    return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin
-    return redirect('admin_slides') # 🚀 แก้ตรงนี้ให้เด้งกลับหน้า Admin
+    return redirect('admin_slides')
 
 BASE_DIR = settings.BASE_DIR
 AI_OUTPUT_DIR = os.path.join(
@@ -838,3 +790,4 @@ def run_ai(request):
             messages.error(request, f"AI model failed: {e}")
 
     return redirect("ai_dashboard")
+
