@@ -1,0 +1,53 @@
+{% extends "micro_lab/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm" style="border-radius: 20px; border: none;">
+                <div class="card-body p-5">
+                    <h3 class="mb-4" style="font-weight: 700;">Edit Booking</h3>
+                    <p class="text-muted mb-4">สถานี: <strong>St.{{ booking.station_id }}</strong> (ID: {{ booking.booking_id|truncatechars:15 }})</p>
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold">START DATE & TIME</label>
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <input type="date" name="start_date" class="form-control" value="{{ booking.daystart|date:'Y-m-d' }}" required style="border-radius: 10px;">
+                                </div>
+                                <div class="col-5">
+                                    <input type="text" name="start_time" class="form-control" value="{{ booking.daystart|date:'h:i A' }}" placeholder="02:00 PM" required style="border-radius: 10px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-5">
+                            <label class="form-label text-muted small fw-bold">END DATE & TIME</label>
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <input type="date" name="end_date" class="form-control" value="{{ booking.dayend|date:'Y-m-d' }}" required style="border-radius: 10px;">
+                                </div>
+                                <div class="col-5">
+                                    <input type="text" name="end_time" class="form-control" value="{{ booking.dayend|date:'h:i A' }}" placeholder="04:00 PM" required style="border-radius: 10px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-2" style="border-radius: 12px; font-weight: 600;">
+                                Save Changes
+                            </button>
+                            <a href="{% url 'admin_dashboard' %}" class="btn btn-light py-2" style="border-radius: 12px; color: #6c757d;">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
